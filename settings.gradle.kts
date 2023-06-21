@@ -1,1 +1,1 @@
-rootProject.name = "waltid-xyzkit"
+rootProject.name = "waltid-mdoc"
