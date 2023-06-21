@@ -1,0 +1,40 @@
+# Intellij
+.idea/
+*.iml
+*.iws
+out
+
+# Mac
+.DS_Store
+
+# Maven
+log/
+target/
+
+# Gradle
+.gradle
+build/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+**/build/
+gradle.properties
+
+.vscode
+
+# WaltID SSI-Kit
+keys/
+*.db
+/data-20210719/
+/docs/essif/*
+*.log
+data
+logs
+keystore
+
+secret*
+
+credential-store
+
+revoked.json
+bin/
