@@ -91,25 +91,20 @@ kotlin {
 
     publishing {
         repositories {
-            maven {
-                url = uri("https://maven.walt.id/repository/waltid-ssi-kit/")
-                val envUsername = System.getenv("MAVEN_USERNAME")
-                val envPassword = System.getenv("MAVEN_PASSWORD")
-
-                val usernameFile = File("secret_maven_username.txt")
-                val passwordFile = File("secret_maven_password.txt")
-
-                val secretMavenUsername = envUsername ?: usernameFile.let { if (it.isFile) it.readLines().first() else "" }
-                //println("Deploy username length: ${secretMavenUsername.length}")
-                val secretMavenPassword = envPassword ?: passwordFile.let { if (it.isFile) it.readLines().first() else "" }
-
-                //if (secretMavenPassword.isBlank()) {
-                //   println("WARNING: Password is blank!")
-                //}
-
-                credentials {
-                    username = secretMavenUsername
-                    password = secretMavenPassword
+            val envUsername = System.getenv("MAVEN_USERNAME")
+            val envPassword = System.getenv("MAVEN_PASSWORD")
+            val usernameFile = File("secret_maven_username.txt")
+            val passwordFile = File("secret_maven_password.txt")
+            val secretMavenUsername = envUsername ?: usernameFile.let { if (it.isFile) it.readLines().first() else "" }
+            val secretMavenPassword = envPassword ?: passwordFile.let { if (it.isFile) it.readLines().first() else "" }
+            val hasMavenAuth = secretMavenUsername.isNotEmpty() && secretMavenPassword.isNotEmpty()
+            if(hasMavenAuth) {
+                maven {
+                    url = uri("https://maven.walt.id/repository/waltid-ssi-kit/")
+                    credentials {
+                        username = secretMavenUsername
+                        password = secretMavenPassword
+                    }
                 }
             }
         }
