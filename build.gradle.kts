@@ -1,10 +1,6 @@
-import org.apache.tools.ant.util.Base64Converter
-import org.jetbrains.kotlin.utils.addToStdlib.cast
-import org.jetbrains.kotlin.utils.addToStdlib.castAll
-
 plugins {
     kotlin("multiplatform") version "1.8.21"
-    kotlin("plugin.serialization").version("1.6.21")
+    kotlin("plugin.serialization") version "1.8.21"
     id("dev.petuska.npm.publish") version "3.3.1"
     `maven-publish`
 }
@@ -32,7 +28,7 @@ kotlin {
                 }
             }
         }
-        nodejs() {
+        nodejs {
             generateTypeScriptDefinitions()
         }
         binaries.library()
@@ -51,7 +47,8 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:1.5.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+                //implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:1.5.1")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
             }
         }
@@ -96,7 +93,7 @@ kotlin {
             val secretMavenUsername = envUsername ?: usernameFile.let { if (it.isFile) it.readLines().first() else "" }
             val secretMavenPassword = envPassword ?: passwordFile.let { if (it.isFile) it.readLines().first() else "" }
             val hasMavenAuth = secretMavenUsername.isNotEmpty() && secretMavenPassword.isNotEmpty()
-            if(hasMavenAuth) {
+            if (hasMavenAuth) {
                 maven {
                     url = uri("https://maven.walt.id/repository/waltid-ssi-kit/")
                     credentials {
@@ -118,7 +115,7 @@ npmPublish {
         val isReleaseBuild = Regex("\\d+.\\d+.\\d+").matches(version.get())
         println("NPM token: ${hasNPMToken}")
         println("Release build: ${isReleaseBuild}")
-        if(isReleaseBuild && hasNPMToken) {
+        if (isReleaseBuild && hasNPMToken) {
             readme.set(File("README.md"))
             register("npmjs") {
                 uri.set(uri("https://registry.npmjs.org"))
