@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.utils.addToStdlib.castAll
 
 plugins {
     kotlin("multiplatform") version "1.8.21"
+    kotlin("plugin.serialization").version("1.6.21")
     id("dev.petuska.npm.publish") version "3.3.1"
     `maven-publish`
 }
@@ -50,8 +51,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.1")
-                implementation("com.soywiz.korlibs.krypto:krypto:$kryptoVersion")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:1.5.1")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
             }
         }
@@ -65,7 +65,6 @@ kotlin {
         }
         val jvmMain by getting {
             dependencies {
-                implementation("com.nimbusds:nimbus-jose-jwt:9.30.2")
             }
         }
         val jvmTest by getting {
@@ -79,7 +78,6 @@ kotlin {
         }
         val jsMain by getting {
             dependencies {
-                implementation(npm("jose", "~4.14.4"))
             }
         }
         val jsTest by getting {
