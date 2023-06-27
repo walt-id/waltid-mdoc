@@ -27,4 +27,5 @@ import kotlinx.serialization.SerialInfo
  */
 @SerialInfo
 @ExperimentalSerializationApi
+@Target(AnnotationTarget.PROPERTY)
 annotation class ByteString

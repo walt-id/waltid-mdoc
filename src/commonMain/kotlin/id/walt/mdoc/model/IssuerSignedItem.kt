@@ -11,7 +11,9 @@ import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.descriptors.element
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlin.jvm.JvmInline
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class IssuerSignedItem<T>(
     val digestID: UInt,
@@ -20,6 +22,7 @@ data class IssuerSignedItem<T>(
     val elementValue: T
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class Dummy(
     @ByteString val bytes: ByteArray
@@ -27,7 +30,10 @@ data class Dummy(
 
 @Serializable(with = IssuerSignedItemBytesSerializer::class)
 //@Serializable
-class IssuerSignedItemBytes(
+@JvmInline
+@OptIn(ExperimentalSerializationApi::class)
+//@ByteString
+value class IssuerSignedItemBytes(
     @ByteString val bytes: ByteArray
 )
 

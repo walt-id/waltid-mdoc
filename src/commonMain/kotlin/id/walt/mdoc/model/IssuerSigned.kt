@@ -4,6 +4,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import cbor.ByteString
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class IssuerSigned(
     @ByteString val nameSpaces: Map<String, List<IssuerSignedItemBytes>>?

@@ -98,7 +98,7 @@ internal open class CborReader(private val cbor: Cbor, protected val decoder: Cb
     @OptIn(ExperimentalSerializationApi::class)
     override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
         println("- decodeSerializableValue: ${deserializer.descriptor.serialName}")
-        if (deserializer.descriptor.serialName == "kotlin.ByteArray" && previousDeserializerDescriptor == "id.walt.mdoc.ByteString2") {
+        if (deserializer.descriptor.serialName == "kotlin.ByteArray" && previousDeserializerDescriptor == "IssuerSignedItemBytes") {
             decodeByteArrayAsByteString = true
             println("====>>>> SET decodeByteArrayAsByteString")
         } else {

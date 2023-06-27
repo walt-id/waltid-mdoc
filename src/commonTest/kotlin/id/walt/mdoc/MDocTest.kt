@@ -56,11 +56,6 @@ class MDocTest {
     @Test
     fun testx() {
         val exampleCborData = byteArrayOf((0xBF).toByte(), 0x1A, 0x12, 0x38, 0x00, 0x00, 0x41, 0x03, (0xFF).toByte())
-        println(Cbor.decodeFromByteArray<Map<Int, ByteString2>>(exampleCborData))
+        println(Cbor.decodeFromByteArray<Map<Int, IssuerSignedItemBytes>>(exampleCborData))
     }
 }
-@JvmInline
-@Serializable
-@OptIn(ExperimentalSerializationApi::class)
-@ByteString
-value class ByteString2(@ByteString val data: ByteArray)
