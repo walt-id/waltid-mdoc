@@ -4,9 +4,6 @@ package cbor.internal.decoding
 
 import cbor.Cbor
 import cbor.internal.*
-import cbor.internal.ByteArrayInput
-import cbor.internal.CborDecodingException
-import cbor.internal.printByte
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
@@ -96,18 +93,31 @@ internal open class CborReader(private val cbor: Cbor, protected val decoder: Cb
         return index
     }
 
+    private var previousDeserializerDescriptor: String = ""
+
     @OptIn(ExperimentalSerializationApi::class)
     override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
-        println("decodeSerializableValue: ${deserializer.descriptor.serialName}")
-        if (deserializer.descriptor.serialName == "kotlin.ByteArray") {
-            println("isByteString[0]: " + deserializer.descriptor.isByteString(0))
+        println("- decodeSerializableValue: ${deserializer.descriptor.serialName}")
+        if (deserializer.descriptor.serialName == "kotlin.ByteArray" && previousDeserializerDescriptor == "id.walt.mdoc.ByteString2") {
+            decodeByteArrayAsByteString = true
+            println("====>>>> SET decodeByteArrayAsByteString")
+        } else {
+            println("desc: ${deserializer.descriptor.serialName}, prevDesc: $previousDeserializerDescriptor")
         }
-        return if (decodeByteArrayAsByteString && deserializer.descriptor == ByteArraySerializer().descriptor) {
+
+        println("Prev set to ${deserializer.descriptor.serialName}, was ${previousDeserializerDescriptor}")
+        previousDeserializerDescriptor = deserializer.descriptor.serialName
+
+        val result = if (decodeByteArrayAsByteString && deserializer.descriptor == ByteArraySerializer().descriptor) {
+            println("decodeByteArrayAsByteString")
             @Suppress("UNCHECKED_CAST")
             decoder.nextByteString() as T
         } else {
+            println("not decodeByteArrayAsByteString: decodeByteArrayAsByteString=$decodeByteArrayAsByteString && ${deserializer.descriptor == ByteArraySerializer().descriptor}")
             super.decodeSerializableValue(deserializer)
         }
+
+        return result
     }
 
     override fun decodeString() = decoder.nextString()
