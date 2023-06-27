@@ -24,8 +24,15 @@ private open class CborListReader(cbor: Cbor, decoder: CborDecoder) : CborReader
 
     override fun skipBeginToken() = setSize(decoder.startArray())
 
-    override fun decodeElementIndex(descriptor: SerialDescriptor) =
-        if (!finiteMode && decoder.isEnd() || (finiteMode && ind >= size)) CompositeDecoder.DECODE_DONE else ind++
+    override fun decodeElementIndex(descriptor: SerialDescriptor): Int {
+        if(descriptor.serialName == "kotlin.collections.ArrayList") {
+            decodeByteArrayAsByteString = descriptor.isByteString(0) || descriptor.getElementDescriptor(0).isByteString(0)
+        } else if(descriptor.serialName == "kotlin.collections.LinkedHashMap") {
+            decodeByteArrayAsByteString = descriptor.isByteString(0) || descriptor.isByteString(1) || descriptor.getElementDescriptor(1).isByteString(0)
+        }
+        return if (!finiteMode && decoder.isEnd() || (finiteMode && ind >= size)) CompositeDecoder.DECODE_DONE else ind++
+    }
+
 }
 
 internal open class CborReader(private val cbor: Cbor, protected val decoder: CborDecoder) : AbstractDecoder() {
@@ -36,7 +43,7 @@ internal open class CborReader(private val cbor: Cbor, protected val decoder: Cb
         private set
     private var readProperties: Int = 0
 
-    private var decodeByteArrayAsByteString = false
+    protected var decodeByteArrayAsByteString = false
 
     protected fun setSize(size: Int) {
         if (size >= 0) {
@@ -93,22 +100,9 @@ internal open class CborReader(private val cbor: Cbor, protected val decoder: Cb
         return index
     }
 
-    private var previousDeserializerDescriptor: String = ""
-
     @OptIn(ExperimentalSerializationApi::class)
     override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
-        println("- decodeSerializableValue: ${deserializer.descriptor.serialName}")
-        if (deserializer.descriptor.serialName == "kotlin.ByteArray" && previousDeserializerDescriptor == "IssuerSignedItemBytes") {
-            decodeByteArrayAsByteString = true
-            println("====>>>> SET decodeByteArrayAsByteString")
-        } else {
-            println("desc: ${deserializer.descriptor.serialName}, prevDesc: $previousDeserializerDescriptor")
-        }
-
-        println("Prev set to ${deserializer.descriptor.serialName}, was ${previousDeserializerDescriptor}")
-        previousDeserializerDescriptor = deserializer.descriptor.serialName
-
-        val result = if (decodeByteArrayAsByteString && deserializer.descriptor == ByteArraySerializer().descriptor) {
+        return if (decodeByteArrayAsByteString && deserializer.descriptor == ByteArraySerializer().descriptor) {
             println("decodeByteArrayAsByteString")
             @Suppress("UNCHECKED_CAST")
             decoder.nextByteString() as T
@@ -116,8 +110,6 @@ internal open class CborReader(private val cbor: Cbor, protected val decoder: Cb
             println("not decodeByteArrayAsByteString: decodeByteArrayAsByteString=$decodeByteArrayAsByteString && ${deserializer.descriptor == ByteArraySerializer().descriptor}")
             super.decodeSerializableValue(deserializer)
         }
-
-        return result
     }
 
     override fun decodeString() = decoder.nextString()

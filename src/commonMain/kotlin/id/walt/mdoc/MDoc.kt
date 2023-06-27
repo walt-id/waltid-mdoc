@@ -9,18 +9,6 @@ import kotlinx.serialization.encodeToHexString
 
 @Serializable
 class MDoc(
-    val version: String = "1.0",
+    val version: String,
     val documents: List<Document>
-) {
-    @OptIn(ExperimentalSerializationApi::class)
-    fun toCBOR(): ByteArray {
-        return Cbor.encodeToByteArray(this)
-    }
-
-    @OptIn(ExperimentalSerializationApi::class)
-    fun toCBORHex(): String {
-        return Cbor.encodeToHexString(this)
-    }
-
-    companion object
-}
+)

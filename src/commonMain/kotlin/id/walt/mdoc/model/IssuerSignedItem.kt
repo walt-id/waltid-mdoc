@@ -21,37 +21,3 @@ data class IssuerSignedItem<T>(
     val elementIdentifier: String,
     val elementValue: T
 )
-
-@OptIn(ExperimentalSerializationApi::class)
-@Serializable
-data class Dummy(
-    @ByteString val bytes: ByteArray
-)
-
-@Serializable(with = IssuerSignedItemBytesSerializer::class)
-//@Serializable
-@JvmInline
-@OptIn(ExperimentalSerializationApi::class)
-//@ByteString
-value class IssuerSignedItemBytes(
-    @ByteString val bytes: ByteArray
-)
-
-class IssuerSignedItemBytesSerializer<T> : KSerializer<IssuerSignedItemBytes> {
-    @OptIn(InternalSerializationApi::class, ExperimentalSerializationApi::class)
-    override val descriptor: SerialDescriptor
-        get() = buildClassSerialDescriptor("IssuerSignedItemBytes") {
-            this.element<ByteArray>("kotlin.ByteArray", listOf(ByteString()))
-        }
-
-    override fun deserialize(decoder: Decoder): IssuerSignedItemBytes {
-        val bytes = decoder.decodeSerializableValue(ByteArraySerializer())
-        return IssuerSignedItemBytes(bytes)
-    }
-
-    @OptIn(ExperimentalSerializationApi::class)
-    override fun serialize(encoder: Encoder, value: IssuerSignedItemBytes) {
-        encoder.encodeSerializableValue(ByteArraySerializer(), value.bytes)
-    }
-
-}

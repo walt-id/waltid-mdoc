@@ -4,18 +4,17 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import cbor.ByteString
 
-@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class IssuerSigned(
-    @ByteString val nameSpaces: Map<String, List<IssuerSignedItemBytes>>?
+    val nameSpaces: Map<String, List<EmbeddedCBORDataItem>>?
     // val issuerAuth: IssuerAuth
 ) {
     companion object {
         class IssuerSignedBuilder {
-            val nameSpacesMap = mutableMapOf<String, MutableList<IssuerSignedItemBytes>>()
+            val nameSpacesMap = mutableMapOf<String, MutableList<EmbeddedCBORDataItem>>()
 
             @OptIn(ExperimentalSerializationApi::class)
-            fun addIssuerSignedItem(nameSpace: String, item: IssuerSignedItemBytes): IssuerSignedBuilder {
+            fun addIssuerSignedItem(nameSpace: String, item: EmbeddedCBORDataItem): IssuerSignedBuilder {
                 nameSpacesMap.getOrPut(nameSpace) { mutableListOf() }.add(item)
                 return this
             }

@@ -1,12 +1,11 @@
 package id.walt.mdoc
 
-import id.walt.mdoc.model.Document
-import id.walt.mdoc.model.IssuerSigned
-import id.walt.mdoc.model.IssuerSignedItem
-import id.walt.mdoc.model.IssuerSignedItemBytes
 import kotlinx.serialization.*
 import cbor.Cbor
+import id.walt.mdoc.model.*
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldStartWith
 import kotlin.test.Test
 
 class MDocTest {
@@ -21,19 +20,30 @@ class MDocTest {
             "family_name",
             "Doe"
         )
-        println(Cbor.encodeToHexString(item))
+        println(Cbor.encodeToHexString(item).uppercase())
 
+        val embeddedItem = EmbeddedCBORDataItem(Cbor.encodeToByteArray(item))
+        val embeddedItemHex = Cbor.encodeToHexString(embeddedItem).uppercase()
+        embeddedItemHex shouldStartWith "D818"
+        println(embeddedItemHex)
         val mdoc = MDoc(
+            version = "1.0",
             documents = listOf(
                 Document(
                     "org.iso.18013.5.1.mDL",
-                    IssuerSigned.Companion.IssuerSignedBuilder().addIssuerSignedItem(
-                        "org.iso.18013.5.1", IssuerSignedItemBytes(Cbor.encodeToByteArray(item))
-                    ).build()
+                    IssuerSigned(mapOf(
+                        "org.iso.18013.5.1" to listOf(embeddedItem)
+                    ))
                 )
             )
         )
-        println(Cbor.encodeToHexString(mdoc))
+        val mdocHex = Cbor.encodeToHexString(mdoc).uppercase()
+        println(mdocHex)
+
+        val mdocParsed = Cbor.decodeFromHexString<MDoc>(mdocHex)
+        mdocParsed.version shouldBe mdoc.version
+        mdocParsed.documents shouldHaveSize mdoc.documents.size
+
     }
 
     @OptIn(ExperimentalSerializationApi::class)
@@ -44,7 +54,7 @@ class MDocTest {
         val mdoc = Cbor.decodeFromHexString<MDoc>(serializedDoc)
         println(mdoc)
 
-        val item = Cbor.decodeFromByteArray<IssuerSignedItem<String>>(mdoc.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![0].bytes)
+        val item = Cbor.decodeFromByteArray<IssuerSignedItem<String>>(mdoc.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![0].data)
         item.elementValue shouldBe "Doe"
     }
 
@@ -52,6 +62,6 @@ class MDocTest {
     @Test
     fun testx() {
         val exampleCborData = byteArrayOf((0xBF).toByte(), 0x1A, 0x12, 0x38, 0x00, 0x00, 0x41, 0x03, (0xFF).toByte())
-        println(Cbor.decodeFromByteArray<Map<Int, IssuerSignedItemBytes>>(exampleCborData))
+        println(Cbor.decodeFromByteArray<Map<Int, EmbeddedCBORDataItem>>(exampleCborData))
     }
 }
