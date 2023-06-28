@@ -103,11 +103,9 @@ internal open class CborReader(private val cbor: Cbor, protected val decoder: Cb
     @OptIn(ExperimentalSerializationApi::class)
     override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
         return if (decodeByteArrayAsByteString && deserializer.descriptor == ByteArraySerializer().descriptor) {
-            println("decodeByteArrayAsByteString")
             @Suppress("UNCHECKED_CAST")
             decoder.nextByteString() as T
         } else {
-            println("not decodeByteArrayAsByteString: decodeByteArrayAsByteString=$decodeByteArrayAsByteString && ${deserializer.descriptor == ByteArraySerializer().descriptor}")
             super.decodeSerializableValue(deserializer)
         }
     }

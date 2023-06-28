@@ -18,13 +18,12 @@ import kotlin.experimental.or
 
 // Differs from List only in start byte
 private class CborMapWriter(cbor: Cbor, encoder: CborEncoder) : CborListWriter(cbor, encoder) {
-    override fun writeBeginToken(numElements: Long?) = encoder.startMap()
-    override fun endStructure(descriptor: SerialDescriptor) = encoder.end()
+    override fun writeBeginToken(numElements: Long) = encoder.startMap(numElements)
 }
 
 // Writes all elements consequently, except size - CBOR supports maps and arrays of indefinite length
 private open class CborListWriter(cbor: Cbor, encoder: CborEncoder) : CborWriter(cbor, encoder) {
-    override fun writeBeginToken(numElements: Long?) = encoder.startArray(numElements)
+    override fun writeBeginToken(numElements: Long) = encoder.startArray(numElements)
 
     override fun encodeElement(descriptor: SerialDescriptor, index: Int) = true
 }
@@ -47,21 +46,25 @@ internal open class CborWriter(private val cbor: Cbor, protected val encoder: Cb
 
     override fun shouldEncodeElementDefault(descriptor: SerialDescriptor, index: Int): Boolean = cbor.encodeDefaults
 
-    protected open fun writeBeginToken(numElements: Long? = null) = encoder.startMap(numElements)
+    protected open fun writeBeginToken(numElements: Long) = encoder.startMap(numElements)
 
-    //todo: Write size of map or array if known
-    @OptIn(ExperimentalSerializationApi::class)
-    override fun beginStructure(descriptor: SerialDescriptor): CompositeEncoder {
+    private fun doBeginStructure(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
         val writer = when (descriptor.kind) {
             StructureKind.LIST, is PolymorphicKind -> CborListWriter(cbor, encoder)
             StructureKind.MAP -> CborMapWriter(cbor, encoder)
             else -> CborWriter(cbor, encoder)
         }
-        writer.writeBeginToken(descriptor.elementsCount.toLong())
+        writer.writeBeginToken(collectionSize.toLong())
         return writer
     }
 
-    override fun endStructure(descriptor: SerialDescriptor) = encoder.end(descriptor.elementsCount.toLong())
+    //todo: Write size of map or array if known
+    @OptIn(ExperimentalSerializationApi::class)
+    override fun beginStructure(descriptor: SerialDescriptor) = doBeginStructure(descriptor, descriptor.elementsCount)
+
+    override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int) = doBeginStructure(descriptor, collectionSize)
+
+    override fun endStructure(descriptor: SerialDescriptor) = encoder.end()
 
     override fun encodeElement(descriptor: SerialDescriptor, index: Int): Boolean {
         encodeByteArrayAsByteString = descriptor.isByteString(index)
@@ -113,24 +116,14 @@ fun Encoder.encodeByteString(data: ByteArray) {
 // For details of representation, see https://tools.ietf.org/html/rfc7049#section-2.1
 internal class CborEncoder(private val output: ByteArrayOutput) {
 
-    fun startArray(numElements: Long? = null) =
-        if(numElements == null) {
-            output.write(BEGIN_ARRAY)
-        } else {
-            encodeDataHeader(HEADER_ARRAY.toByte(), numElements)
-        }
+    fun startArray(numElements: Long) =
+        encodeDataHeader(HEADER_ARRAY.toByte(), numElements)
 
-    fun startMap(numElements: Long? = null) =
-        if(numElements == null) {
-            output.write(BEGIN_MAP)
-        } else {
-            encodeDataHeader(HEADER_MAP.toByte(), numElements)
-        }
+    fun startMap(numElements: Long) =
+        encodeDataHeader(HEADER_MAP.toByte(), numElements)
 
-    fun end(numElements: Long? = null) {
-        if (numElements == null) {
-            output.write(BREAK)
-        }
+    fun end() {
+        // nothing to do
     }
 
     fun encodeNull() = output.write(NULL)

@@ -14,15 +14,15 @@ data class IssuerSigned(
             val nameSpacesMap = mutableMapOf<String, MutableList<EmbeddedCBORDataItem>>()
 
             @OptIn(ExperimentalSerializationApi::class)
-            fun addIssuerSignedItem(nameSpace: String, item: EmbeddedCBORDataItem): IssuerSignedBuilder {
-                nameSpacesMap.getOrPut(nameSpace) { mutableListOf() }.add(item)
+            fun addIssuerSignedItems(nameSpace: String, vararg item: EmbeddedCBORDataItem): IssuerSignedBuilder {
+                nameSpacesMap.getOrPut(nameSpace) { mutableListOf() }.addAll(item)
                 return this
             }
 
             // add/generate IssuerAuth MSO object
 
             fun build(): IssuerSigned {
-                return IssuerSigned(nameSpacesMap.toMap())
+                return IssuerSigned(nameSpacesMap.mapValues { it.value.toList() })
             }
         }
     }

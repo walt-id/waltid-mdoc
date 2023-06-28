@@ -13,7 +13,6 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 
 @OptIn(ExperimentalSerializationApi::class)
 internal fun SerialDescriptor.isByteString(index: Int): Boolean {
-    println("isByteString: Annotations: " + getElementAnnotations(index))
     return getElementAnnotations(index).find { it is ByteString } != null
 }
 

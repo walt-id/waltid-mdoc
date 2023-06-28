@@ -31,13 +31,14 @@ class MDocTest {
             documents = listOf(
                 Document(
                     "org.iso.18013.5.1.mDL",
-                    IssuerSigned(mapOf(
-                        "org.iso.18013.5.1" to listOf(embeddedItem)
-                    ))
+                    IssuerSigned.Companion.IssuerSignedBuilder().addIssuerSignedItems(
+                        "org.iso.18013.5.1", embeddedItem, embeddedItem, embeddedItem
+                    ).build()
                 )
             )
         )
         val mdocHex = Cbor.encodeToHexString(mdoc).uppercase()
+        println("SERIALIZED MDOC")
         println(mdocHex)
 
         val mdocParsed = Cbor.decodeFromHexString<MDoc>(mdocHex)
