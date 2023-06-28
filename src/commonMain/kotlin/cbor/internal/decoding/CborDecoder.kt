@@ -13,6 +13,7 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.encoding.AbstractDecoder
 import kotlinx.serialization.encoding.CompositeDecoder
+import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.modules.SerializersModule
 
 private class CborMapReader(cbor: Cbor, decoder: CborDecoder) : CborListReader(cbor, decoder) {
@@ -26,9 +27,13 @@ private open class CborListReader(cbor: Cbor, decoder: CborDecoder) : CborReader
 
     override fun decodeElementIndex(descriptor: SerialDescriptor): Int {
         if(descriptor.serialName == "kotlin.collections.ArrayList") {
-            decodeByteArrayAsByteString = descriptor.isByteString(0) || descriptor.getElementDescriptor(0).isByteString(0)
+            decodeByteArrayAsByteString = descriptor.isByteString(0) || descriptor.getElementDescriptor(0).let {
+                it.elementsCount > 0 && it.isByteString(0)
+            }
         } else if(descriptor.serialName == "kotlin.collections.LinkedHashMap") {
-            decodeByteArrayAsByteString = descriptor.isByteString(0) || descriptor.isByteString(1) || descriptor.getElementDescriptor(1).isByteString(0)
+            decodeByteArrayAsByteString = descriptor.isByteString(0) || descriptor.isByteString(1) || descriptor.getElementDescriptor(1).let {
+                it.elementsCount > 0 && it.isByteString(0)
+            }
         }
         return if (!finiteMode && decoder.isEnd() || (finiteMode && ind >= size)) CompositeDecoder.DECODE_DONE else ind++
     }
@@ -131,6 +136,24 @@ internal open class CborReader(private val cbor: Cbor, protected val decoder: Cb
         enumDescriptor.getElementIndexOrThrow(decoder.nextString())
 
     private fun isDone(): Boolean = !finiteMode && decoder.isEnd() || (finiteMode && readProperties >= size)
+
+    fun peek() = decoder.peek()
+
+    fun decodeByteString() = decoder.nextByteString()
+}
+
+fun Decoder.peek(): Int {
+    if(this is CborReader) {
+        return this.peek()
+    }
+    throw SerializationException("Can peek decoder byte only for CborReader")
+}
+
+fun Decoder.decodeByteString(): ByteArray {
+    if(this is CborReader) {
+        return this.decodeByteString()
+    }
+    throw SerializationException("Decoding of ByteString is only supported for CborReader")
 }
 
 
@@ -143,6 +166,10 @@ internal class CborDecoder(private val input: ByteArrayInput) {
 
     private fun readByte(): Int {
         curByte = input.read()
+        return curByte
+    }
+
+    fun peek(): Int {
         return curByte
     }
 

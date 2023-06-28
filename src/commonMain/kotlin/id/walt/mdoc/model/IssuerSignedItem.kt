@@ -15,9 +15,9 @@ import kotlin.jvm.JvmInline
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
-data class IssuerSignedItem<T>(
+data class IssuerSignedItem(
     val digestID: UInt,
     @ByteString val random: ByteArray,
     val elementIdentifier: String,
-    val elementValue: T
+    val elementValue: DataElementValue
 )
