@@ -140,6 +140,8 @@ internal open class CborReader(private val cbor: Cbor, protected val decoder: Cb
     fun peek() = decoder.peek()
 
     fun decodeByteString() = decoder.nextByteString()
+
+    fun decodeTag() = decoder.readTag()
 }
 
 fun Decoder.peek(): Int {
@@ -154,6 +156,13 @@ fun Decoder.decodeByteString(): ByteArray {
         return this.decodeByteString()
     }
     throw SerializationException("Decoding of ByteString is only supported for CborReader")
+}
+
+fun Decoder.decodeTag(): Long {
+    if(this is CborReader) {
+        return this.decodeTag()
+    }
+    throw SerializationException("Decoding of Tag number only supported for CborReader")
 }
 
 
@@ -253,6 +262,12 @@ internal class CborDecoder(private val input: ByteArrayInput) {
             readNumber() // This is the tag number
             readByte()
         }
+    }
+
+    fun readTag(): Long {
+        val res = readNumber()
+        readByte()
+        return res
     }
 
     fun nextNumber(): Long {

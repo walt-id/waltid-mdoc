@@ -12,11 +12,11 @@ data class MDoc(
 )
 
 class MDocBuilder(val docType: String) {
-    val nameSpacesMap = mutableMapOf<String, MutableList<EmbeddedCBORDataItem>>()
+    val nameSpacesMap = mutableMapOf<String, MutableList<EncodedDataElementValue>>()
 
     @OptIn(ExperimentalSerializationApi::class)
     fun addIssuerSignedItems(nameSpace: String, vararg item: IssuerSignedItem): MDocBuilder {
-        nameSpacesMap.getOrPut(nameSpace) { mutableListOf() }.addAll(item.map { EmbeddedCBORDataItem(Cbor.encodeToByteArray(it)) })
+        nameSpacesMap.getOrPut(nameSpace) { mutableListOf() }.addAll(item.map { EncodedDataElementValue(it.toDataElementValue()) })
         return this
     }
 

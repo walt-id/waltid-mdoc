@@ -1,5 +1,10 @@
 package cbor.internal
 
+internal const val TDATE = 0L
+internal const val TIME = 1L
+internal const val ENCODED_CBOR = 24L
+internal const val FULL_DATE_STR = 1004L
+internal const val FULL_DATE_INT = 100L
 internal const val FALSE = 0xf4
 internal const val TRUE = 0xf5
 internal const val NULL = 0xf6

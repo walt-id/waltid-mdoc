@@ -20,4 +20,24 @@ data class IssuerSignedItem(
     @ByteString val random: ByteArray,
     val elementIdentifier: String,
     val elementValue: DataElementValue
-)
+) {
+    fun toDataElementValue(): DataElementValue {
+        return DataElementValue(mapOf(
+            "digestID" to DataElementValue(digestID.toLong()),
+            "random" to DataElementValue(random),
+            "elementIdentifier" to DataElementValue(elementIdentifier),
+            "elementValue" to elementValue
+        ))
+    }
+
+    companion object {
+        fun fromDataElementValue(value: DataElementValue): IssuerSignedItem {
+            return IssuerSignedItem(
+                value.map["digestID"]!!.number.toInt().toUInt(),
+                value.map["random"]!!.byteString,
+                value.map["elementIdentifier"]!!.textString,
+                value.map["elementValue"]!!
+            )
+        }
+    }
+}

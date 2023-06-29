@@ -1,48 +1,81 @@
 package id.walt.mdoc.model
 
-import cbor.internal.*
-import cbor.internal.FALSE
-import cbor.internal.NEXT_FLOAT
-import cbor.internal.NEXT_HALF
-import cbor.internal.NULL
-import cbor.internal.TRUE
-import cbor.internal.decoding.decodeByteString
-import cbor.internal.decoding.peek
-import cbor.internal.encoding.encodeByteString
-import kotlinx.serialization.*
-import kotlinx.serialization.builtins.*
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.SerialKind
-import kotlinx.serialization.descriptors.buildSerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.json.JsonElement
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Serializable
 
+/** Data Element Type,
+ * see also:
+ * CBOR Major types: https://www.rfc-editor.org/rfc/rfc8949#name-major-types
+ * CBOR Prelude: https://www.rfc-editor.org/rfc/rfc8610.html#appendix-D
+ * CBOR date extension: https://datatracker.ietf.org/doc/html/rfc8943
+*/
+enum class DEType {
+  number,     // #0, #1, #7.25, #7.26, #7.27
+  boolean,    // #7.20, #7.21
+  textString, // #3
+  byteString, // #2
+  nil,        // #7.22
+  dateTime,   // #6.0, #6.1
+  fullDate,   // #6.1004, #6.100
+  list,       // #4
+  map,        // #5,
+  encodedCbor // #6.24
+}
+
+/**
+ * Data Element attribute
+ */
+open class DEAttribute(val type: DEType)
+
+/**
+ * Data Element DateTime mode: tdate (rfc3339 string) or time since epoch (as int/long or floating point)
+ */
+enum class DEDateTimeMode {
+  tdate,          // #6.0
+  time_int,       // #6.1
+  time_float,     // #6.1
+  time_double,    // #6.1
+}
+
+/**
+ * Data Element full date mode: rfc3339 string date-only part or number of days since epoch as int/long
+ */
+enum class DEFullDateMode {
+  full_date_str,  // #6.1004
+  full_date_int   // #6.100
+}
+
+/**
+ * Data Element DateTime attribute
+ */
+class DEDateTimeAttribute(val mode: DEDateTimeMode = DEDateTimeMode.tdate) : DEAttribute(DEType.dateTime)
+/**
+ * Data Element full date attribute
+ */
+class DEFullDateAttribute(val mode: DEFullDateMode = DEFullDateMode.full_date_str): DEAttribute(DEType.fullDate)
+
+@Serializable(with = DataElementValueSerializer::class)
 data class DataElementValue private constructor (
-  private val data: Any?
+  private val data: Any?,
+  val attribute: DEAttribute
 ) {
-  constructor(value: Number) : this(data = value)
-  constructor(value: Boolean): this(data = value)
-  constructor(value: String): this(data = value)
-  constructor(value: ByteArray): this(data = value)
-  constructor(value: List<DataElementValue>): this(data = value)
-  constructor(value: Map<String, DataElementValue>): this(data = value)
-  constructor(value: Nothing?): this(data = value)
+  constructor(value: Number) : this(data = value, DEAttribute(DEType.number))
+  constructor(value: Boolean): this(data = value, DEAttribute(DEType.boolean))
+  constructor(value: String): this(data = value, DEAttribute(DEType.textString))
+  constructor(value: ByteArray): this(data = value, DEAttribute(DEType.byteString))
+  constructor(value: List<DataElementValue>): this(data = value, DEAttribute(DEType.list))
+  constructor(value: Map<String, DataElementValue>): this(data = value, DEAttribute(DEType.map))
+  constructor(value: Nothing?): this(data = value, DEAttribute(DEType.nil))
 
-  val isNumber
-    get() = data is Number
-  val isBoolean
-    get() = data is Boolean
-  val isTextString
-    get() = data is String
-  val isByteString
-    get() = data is ByteArray
-  val isList
-    get() = data is List<*>
-  val isMap
-    get() = data is Map<*,*>
-  val isNull
-    get() = data == null || data is Nothing
+  // tdate #6.0, #6.1
+  constructor(value: Instant, subType: DEDateTimeMode = DEDateTimeMode.tdate): this(data = value, DEDateTimeAttribute(subType))
+  // full-date #6.1004, #6.100
+  constructor(value: LocalDate, subType: DEFullDateMode = DEFullDateMode.full_date_str): this(data = value, DEFullDateAttribute(subType))
+  constructor(value: EncodedDataElementValue): this(data = value, DEAttribute(DEType.encodedCbor))
+
+  val type
+    get() = attribute.type
 
   val number
     get() = data as Number
@@ -56,49 +89,10 @@ data class DataElementValue private constructor (
     get() = data as List<DataElementValue>
   val map
     get() = data as Map<String, DataElementValue>
-
-  @Serializer(forClass = DataElementValue::class)
-  companion object: KSerializer<DataElementValue> {
-    @OptIn(InternalSerializationApi::class)
-    override val descriptor: SerialDescriptor
-      get() = buildSerialDescriptor("DataElementValue", SerialKind.CONTEXTUAL)
-
-    override fun deserialize(decoder: Decoder): DataElementValue {
-      val curHead = decoder.peek()
-      return when(curHead.shr(5)) {
-        0, 1 -> decoder.decodeLong()
-        2 -> decoder.decodeByteString()
-        3 -> decoder.decodeString()
-        4 -> decoder.decodeSerializableValue(ListSerializer(Companion))
-        5 -> decoder.decodeSerializableValue(MapSerializer(String.serializer(), Companion))
-        7 -> when(curHead) {
-          FALSE, TRUE -> decoder.decodeBoolean()
-          NULL -> decoder.decodeNull()
-          NEXT_HALF, NEXT_FLOAT, NEXT_DOUBLE -> decoder.decodeDouble()
-          else -> throw SerializationException("DataElementValue content mustn't be contentless data")
-        }
-        else -> throw SerializationException("Cannot deserialize value with given header $curHead")
-      }.let { DataElementValue(it) }
-    }
-
-    override fun serialize(encoder: Encoder, value: DataElementValue) {
-      when(value.data) {
-        is Int, is UInt, is Long, is ULong, is Short, is UShort -> encoder.encodeLong(value.number.toLong())
-        is Float -> encoder.encodeFloat(value.number.toFloat())
-        is Double -> encoder.encodeDouble(value.number.toDouble())
-        is Boolean -> encoder.encodeBoolean(value.boolean)
-        is String -> encoder.encodeString(value.textString)
-        is ByteArray -> encoder.encodeByteString(value.byteString)
-        is List<*> -> encoder.encodeSerializableValue(ListSerializer(Companion),
-          value.list
-        )
-        is Map<*, *> -> encoder.encodeSerializableValue(MapSerializer(String.serializer(), Companion),
-          value.map
-        )
-        is Nothing, null -> encoder.encodeNull()
-        else -> throw SerializationException("Unsupported data value type")
-      }
-    }
-
-  }
+  val dateTime
+    get() = data as Instant
+  val fullDate
+    get() = data as LocalDate
+  val embeddedCBOR
+    get() = data as EncodedDataElementValue
 }
