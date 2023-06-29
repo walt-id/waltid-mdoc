@@ -32,7 +32,7 @@ object DataElementValueSerializer: KSerializer<DataElementValue> {
       2 -> DataElementValue(decoder.decodeByteString())
       3 -> DataElementValue(decoder.decodeString())
       4 -> DataElementValue(decoder.decodeSerializableValue(ListSerializer(DataElementValueSerializer)))
-      5 -> DataElementValue(decoder.decodeSerializableValue(MapSerializer(String.serializer(), DataElementValueSerializer)))
+      5 -> DataElementValue(decoder.decodeSerializableValue(MapSerializer(MapKeySerializer, DataElementValueSerializer)))
       6 -> {
         val tag = decoder.decodeTag()
         when(tag) {
@@ -48,7 +48,7 @@ object DataElementValueSerializer: KSerializer<DataElementValue> {
         NEXT_HALF, NEXT_FLOAT, NEXT_DOUBLE -> DataElementValue(decoder.decodeDouble())
         else -> throw SerializationException("DataElement value mustn't be contentless data")
       }
-      else -> throw SerializationException("Cannot deserialize value with given header $curHead")
+      else -> throw SerializationException("Cannot deserialize value with given major type $majorType")
     }
   }
 
@@ -67,7 +67,7 @@ object DataElementValueSerializer: KSerializer<DataElementValue> {
         value.list
       )
       DEType.map -> encoder.encodeSerializableValue(
-        MapSerializer(String.serializer(), DataElementValueSerializer),
+        MapSerializer(MapKeySerializer, DataElementValueSerializer),
         value.map
       )
       DEType.nil -> encoder.encodeNull()

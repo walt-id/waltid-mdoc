@@ -23,20 +23,20 @@ data class IssuerSignedItem(
 ) {
     fun toDataElementValue(): DataElementValue {
         return DataElementValue(mapOf(
-            "digestID" to DataElementValue(digestID.toLong()),
-            "random" to DataElementValue(random),
-            "elementIdentifier" to DataElementValue(elementIdentifier),
-            "elementValue" to elementValue
+            MapKey("digestID") to DataElementValue(digestID.toLong()),
+            MapKey("random") to DataElementValue(random),
+            MapKey("elementIdentifier") to DataElementValue(elementIdentifier),
+            MapKey("elementValue") to elementValue
         ))
     }
 
     companion object {
         fun fromDataElementValue(value: DataElementValue): IssuerSignedItem {
             return IssuerSignedItem(
-                value.map["digestID"]!!.number.toInt().toUInt(),
-                value.map["random"]!!.byteString,
-                value.map["elementIdentifier"]!!.textString,
-                value.map["elementValue"]!!
+                value.map[MapKey("digestID")]!!.number.toInt().toUInt(),
+                value.map[MapKey("random")]!!.byteString,
+                value.map[MapKey("elementIdentifier")]!!.textString,
+                value.map[MapKey("elementValue")]!!
             )
         }
     }

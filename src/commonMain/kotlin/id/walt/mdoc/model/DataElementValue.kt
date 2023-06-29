@@ -65,7 +65,7 @@ data class DataElementValue private constructor (
   constructor(value: String): this(data = value, DEAttribute(DEType.textString))
   constructor(value: ByteArray): this(data = value, DEAttribute(DEType.byteString))
   constructor(value: List<DataElementValue>): this(data = value, DEAttribute(DEType.list))
-  constructor(value: Map<String, DataElementValue>): this(data = value, DEAttribute(DEType.map))
+  constructor(value: Map<MapKey, DataElementValue>): this(data = value, DEAttribute(DEType.map))
   constructor(value: Nothing?): this(data = value, DEAttribute(DEType.nil))
 
   // tdate #6.0, #6.1
@@ -88,7 +88,7 @@ data class DataElementValue private constructor (
   val list
     get() = data as List<DataElementValue>
   val map
-    get() = data as Map<String, DataElementValue>
+    get() = data as Map<MapKey, DataElementValue>
   val dateTime
     get() = data as Instant
   val fullDate

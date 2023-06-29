@@ -22,7 +22,7 @@ class MDocTest {
         val floatItem = IssuerSignedItem(0u,byteArrayOf(1, 2, 3),"factor_x", DataElementValue(0.5f))
         val booleanItem = IssuerSignedItem(0u,byteArrayOf(1, 2, 3),"is_over_18", DataElementValue(true))
         val listItem = IssuerSignedItem(0u,byteArrayOf(1, 2, 3),"driving_privileges", DataElementValue(listOf(DataElementValue("A"), DataElementValue("B"))))
-        val mapItem = IssuerSignedItem(0u,byteArrayOf(1, 2, 3),"attributes", DataElementValue(mapOf("attribute1" to DataElementValue("X"), "attribute2" to DataElementValue("Y"))))
+        val mapItem = IssuerSignedItem(0u,byteArrayOf(1, 2, 3),"attributes", DataElementValue(mapOf(MapKey("attribute1") to DataElementValue("X"), MapKey("attribute2") to DataElementValue("Y"))))
         val nullItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "nothing", DataElementValue(null))
         val embeddedCborValue = "The encoded item"
         val cborItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "encoded_cbor", DataElementValue(EncodedDataElementValue(Cbor.encodeToByteArray(embeddedCborValue))))
@@ -83,5 +83,21 @@ class MDocTest {
     fun testx() {
         val exampleCborData = byteArrayOf((0xBF).toByte(), 0x1A, 0x12, 0x38, 0x00, 0x00, 0x41, 0x03, (0xFF).toByte())
         println(Cbor.decodeFromByteArray<Map<Int, EncodedDataElementValue>>(exampleCborData))
+    }
+
+    @Test
+    fun testIntMap() {
+        val intMap = mapOf(
+                MapKey(-1) to DataElementValue("Element -1"),
+                MapKey(5) to DataElementValue("Element 5")
+        )
+        //val mapElement = DataElementValue(intMap)
+        val cbor = Cbor.encodeToHexString(intMap)
+        println(cbor)
+        val parsedMapElement = Cbor.decodeFromHexString<Map<MapKey, DataElementValue>>(cbor)
+        //parsedMapElement.type shouldBe DEType.map
+        intMap.forEach {
+            parsedMapElement[it.key] shouldBe it.value
+        }
     }
 }
