@@ -21,6 +21,10 @@ class EncodedDataElementValue(val data: ByteArray) {
   fun decode(): DataElementValue {
     return Cbor.decodeFromByteArray(data)
   }
+
+  override fun equals(other: Any?): Boolean {
+    return other is EncodedDataElementValue && data.contentEquals(other.data)
+  }
 }
 
 @Serializer(forClass = EncodedDataElementValue::class)

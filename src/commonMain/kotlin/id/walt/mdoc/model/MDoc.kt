@@ -9,7 +9,13 @@ import kotlinx.serialization.encodeToByteArray
 data class MDoc(
     val docType: String,
     val issuerSigned: IssuerSigned
-)
+) {
+    fun getIssuerSignedItems(nameSpace: String): List<IssuerSignedItem> {
+        return issuerSigned.nameSpaces?.get(nameSpace)?.map {
+            IssuerSignedItem.fromDataElementValue(it.decode())
+        }?.toList() ?: listOf()
+    }
+}
 
 class MDocBuilder(val docType: String) {
     val nameSpacesMap = mutableMapOf<String, MutableList<EncodedDataElementValue>>()

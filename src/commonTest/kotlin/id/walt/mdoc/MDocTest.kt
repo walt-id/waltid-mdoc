@@ -27,8 +27,8 @@ class MDocTest {
         val embeddedCborValue = "The encoded item"
         val cborItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "encoded_cbor", DataElementValue(EncodedDataElementValue(Cbor.encodeToByteArray(embeddedCborValue))))
         val tdateItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "issue_date", DataElementValue(Clock.System.now()))
-        val tdateIntItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "issue_date", DataElementValue(Clock.System.now(), DEDateTimeMode.time_int))
-        val tdateDblItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "issue_date", DataElementValue(Clock.System.now(), DEDateTimeMode.time_double))
+        val tdateIntItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "issue_date_int", DataElementValue(Clock.System.now(), DEDateTimeMode.time_int))
+        val tdateDblItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "issue_date_dbl", DataElementValue(Clock.System.now(), DEDateTimeMode.time_double))
         val fullDateStrItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "birth_date", DataElementValue(LocalDate.parse("1983-07-05"), DEFullDateMode.full_date_str))
         val fullDateIntItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "expiry_date", DataElementValue(LocalDate.parse("2025-12-31"), DEFullDateMode.full_date_int))
 
@@ -50,65 +50,19 @@ class MDocTest {
         mdocParsed.documents shouldHaveSize mdoc.documents.size
         mdocParsed.documents[0].docType shouldBe mdoc.documents[0].docType
         mdocParsed.documents[0].issuerSigned.nameSpaces!!.keys shouldContainAll mdoc.documents[0].issuerSigned.nameSpaces!!.keys
-        mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!!.size shouldBe mdoc.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!!.size
 
-        val parsedTextItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![0].data)
-        parsedTextItem.elementValue.type shouldBe DEType.textString
-        parsedTextItem.elementValue.textString shouldBe textItem.elementValue.textString
+        val originalIssuerSignedItems = mdoc.documents[0].getIssuerSignedItems("org.iso.18013.5.1")
+        val parsedDocIssuerSignedItems = mdocParsed.documents[0].getIssuerSignedItems("org.iso.18013.5.1")
+        parsedDocIssuerSignedItems.size shouldBe originalIssuerSignedItems.size
 
-        val parsedByteStringItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![1].data)
-        parsedByteStringItem.elementValue.type shouldBe DEType.byteString
-        parsedByteStringItem.elementValue.byteString shouldBe byteStringItem.elementValue.byteString
-
-        val parsedIntItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![2].data)
-        parsedIntItem.elementValue.type shouldBe DEType.number
-        parsedIntItem.elementValue.number shouldBe intItem.elementValue.number
-
-        val parsedFloatItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![3].data)
-        parsedFloatItem.elementValue.type shouldBe DEType.number
-        parsedFloatItem.elementValue.number shouldBe floatItem.elementValue.number
-
-        val parsedBooleanItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![4].data)
-        parsedBooleanItem.elementValue.type shouldBe DEType.boolean
-        parsedBooleanItem.elementValue.boolean shouldBe booleanItem.elementValue.boolean
-
-        val parsedListItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![5].data)
-        parsedListItem.elementValue.type shouldBe DEType.list
-        parsedListItem.elementValue.list.map { it.textString } shouldContainAll listItem.elementValue.list.map { it.textString }
-
-        val parsedMapItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![6].data)
-        parsedMapItem.elementValue.type shouldBe DEType.map
-        parsedMapItem.elementValue.map.keys shouldContainAll mapItem.elementValue.map.keys
-        parsedMapItem.elementValue.map.values.map { it.textString } shouldContainAll mapItem.elementValue.map.values.map { it.textString }
-
-        val parsedNullItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![7].data)
-        parsedNullItem.elementValue.type shouldBe DEType.nil
-
-        val parsedCborItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![8].data)
-        parsedCborItem.elementValue.type shouldBe DEType.encodedCbor
-        val parsedEmbeddedCbor = Cbor.decodeFromByteArray<DataElementValue>(parsedCborItem.elementValue.embeddedCBOR.data)
-        parsedEmbeddedCbor.type shouldBe DEType.textString
-        parsedEmbeddedCbor.textString shouldBe embeddedCborValue
-
-        val parsedTdateItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![9].data)
-        parsedTdateItem.elementValue.type shouldBe DEType.dateTime
-        parsedTdateItem.elementValue.dateTime shouldBe tdateItem.elementValue.dateTime
-
-        val parsedTdateIntItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![10].data)
-        parsedTdateIntItem.elementValue.type shouldBe DEType.dateTime
-        parsedTdateIntItem.elementValue.dateTime.epochSeconds shouldBe tdateIntItem.elementValue.dateTime.epochSeconds
-
-        val parsedTdateDblItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![11].data)
-        parsedTdateDblItem.elementValue.type shouldBe DEType.dateTime
-        parsedTdateDblItem.elementValue.dateTime.toEpochMilliseconds() shouldBe tdateDblItem.elementValue.dateTime.toEpochMilliseconds()
-
-        val parsedfullDateStrItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![12].data)
-        parsedfullDateStrItem.elementValue.type shouldBe DEType.fullDate
-        parsedfullDateStrItem.elementValue.fullDate.toEpochDays() shouldBe fullDateStrItem.elementValue.fullDate.toEpochDays()
-
-        val parsedfullDateIntItem = Cbor.decodeFromByteArray<IssuerSignedItem>(mdocParsed.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![13].data)
-        parsedfullDateIntItem.elementValue.type shouldBe DEType.fullDate
-        parsedfullDateIntItem.elementValue.fullDate.toEpochDays() shouldBe fullDateIntItem.elementValue.fullDate.toEpochDays()
+        parsedDocIssuerSignedItems.union(originalIssuerSignedItems).groupBy { it.elementIdentifier }.values.forEach { grp ->
+            grp.size shouldBe 2
+            grp.first().elementValue.type shouldBe grp.last().elementValue.type
+            grp.first().elementValue shouldBe grp.last().elementValue
+            if(grp.first().elementValue.type == DEType.encodedCbor) {
+                grp.first().elementValue.embeddedCBOR.decode() shouldBe grp.last().elementValue.embeddedCBOR.decode()
+            }
+        }
     }
 
     @OptIn(ExperimentalSerializationApi::class)

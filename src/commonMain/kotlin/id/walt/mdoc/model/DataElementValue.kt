@@ -95,4 +95,14 @@ data class DataElementValue private constructor (
     get() = data as LocalDate
   val embeddedCBOR
     get() = data as EncodedDataElementValue
+
+  override fun equals(other: Any?): Boolean {
+    val res = other is DataElementValue && when(type) {
+      DEType.byteString -> byteString.contentEquals(other.byteString)
+      DEType.list -> list.all { other.list.contains(it) }
+      DEType.map -> map.all { other.map[it.key] == it.value }
+      else -> data == other.data
+    }
+    return res
+  }
 }
