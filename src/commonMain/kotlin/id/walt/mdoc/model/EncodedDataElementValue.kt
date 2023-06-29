@@ -27,13 +27,9 @@ class EncodedDataElementValue(val data: ByteArray) {
   }
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializer(forClass = EncodedDataElementValue::class)
 object EncodedDataElementValueSerializer: KSerializer<EncodedDataElementValue> {
-  @OptIn(InternalSerializationApi::class)
-  override val descriptor: SerialDescriptor
-    get() = buildClassSerialDescriptor(EncodedDataElementValue::class.qualifiedName!!) {
-      element("data", buildSerialDescriptor("EmbeddedCBORData", StructureKind.LIST), listOf(ByteString()))
-    }
 
   override fun deserialize(decoder: Decoder): EncodedDataElementValue {
     val data = decoder.decodeByteString()
