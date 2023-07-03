@@ -10,6 +10,7 @@ import kotlinx.serialization.builtins.ByteArraySerializer
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.StructureKind
+import kotlinx.serialization.descriptors.nullable
 import kotlinx.serialization.encoding.AbstractEncoder
 import kotlinx.serialization.encoding.CompositeEncoder
 import kotlinx.serialization.encoding.Encoder
@@ -22,14 +23,14 @@ private class CborMapWriter(cbor: Cbor, encoder: CborEncoder) : CborListWriter(c
 }
 
 // Writes all elements consequently, except size - CBOR supports maps and arrays of indefinite length
-private open class CborListWriter(cbor: Cbor, encoder: CborEncoder) : CborWriter(cbor, encoder) {
+private open class CborListWriter(cbor: Cbor, encoder: CborEncoder) : CborWriter(cbor, encoder, false) {
     override fun writeBeginToken(numElements: Long) = encoder.startArray(numElements)
 
     override fun encodeElement(descriptor: SerialDescriptor, index: Int) = true
 }
 
 // Writes class as map [fieldName, fieldValue]
-internal open class CborWriter(private val cbor: Cbor, protected val encoder: CborEncoder) : AbstractEncoder() {
+internal open class CborWriter(private val cbor: Cbor, protected val encoder: CborEncoder, protected val writeIndefiniteLengthHeader: Boolean) : AbstractEncoder() {
     override val serializersModule: SerializersModule
         get() = cbor.serializersModule
 
@@ -46,13 +47,18 @@ internal open class CborWriter(private val cbor: Cbor, protected val encoder: Cb
 
     override fun shouldEncodeElementDefault(descriptor: SerialDescriptor, index: Int): Boolean = cbor.encodeDefaults
 
-    protected open fun writeBeginToken(numElements: Long) = encoder.startMap(numElements)
+    protected open fun writeBeginToken(numElements: Long) = encoder.startMap(when(writeIndefiniteLengthHeader) {
+        true -> null
+        else -> numElements
+    })
 
     private fun doBeginStructure(descriptor: SerialDescriptor, collectionSize: Int): CompositeEncoder {
         val writer = when (descriptor.kind) {
             StructureKind.LIST, is PolymorphicKind -> CborListWriter(cbor, encoder)
             StructureKind.MAP -> CborMapWriter(cbor, encoder)
-            else -> CborWriter(cbor, encoder)
+            else -> CborWriter(cbor, encoder, if(descriptor.elementsCount > 0) {
+                IntRange(0, descriptor.elementsCount-1).any { descriptor.isElementOptional(it) }
+            } else false)
         }
         writer.writeBeginToken(collectionSize.toLong())
         return writer
@@ -64,7 +70,10 @@ internal open class CborWriter(private val cbor: Cbor, protected val encoder: Cb
 
     override fun beginCollection(descriptor: SerialDescriptor, collectionSize: Int) = doBeginStructure(descriptor, collectionSize)
 
-    override fun endStructure(descriptor: SerialDescriptor) = encoder.end()
+    override fun endStructure(descriptor: SerialDescriptor) = when(writeIndefiniteLengthHeader) {
+        true -> encoder.end()
+        else -> {}
+    }
 
     override fun encodeElement(descriptor: SerialDescriptor, index: Int): Boolean {
         encodeByteArrayAsByteString = descriptor.isByteString(index)
@@ -119,11 +128,14 @@ internal class CborEncoder(private val output: ByteArrayOutput) {
     fun startArray(numElements: Long) =
         encodeDataHeader(HEADER_ARRAY.toByte(), numElements)
 
-    fun startMap(numElements: Long) =
-        encodeDataHeader(HEADER_MAP.toByte(), numElements)
+    fun startMap(numElements: Long?) =
+        if(numElements != null)
+            encodeDataHeader(HEADER_MAP.toByte(), numElements)
+        else
+            output.write(BEGIN_MAP)
 
     fun end() {
-        // nothing to do
+        output.write(BREAK)
     }
 
     fun encodeNull() = output.write(NULL)

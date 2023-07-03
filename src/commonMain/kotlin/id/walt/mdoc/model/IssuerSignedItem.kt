@@ -1,43 +1,47 @@
 package id.walt.mdoc.model
 
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.InternalSerializationApi
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ByteArraySerializer
 import cbor.ByteString
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.buildClassSerialDescriptor
-import kotlinx.serialization.descriptors.element
+import id.walt.mdoc.model.dataelement.*
+import kotlinx.serialization.*
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlin.jvm.JvmInline
 
 @OptIn(ExperimentalSerializationApi::class)
-@Serializable
+@Serializable(with = IssuerSignedItemSerializer::class)
 data class IssuerSignedItem(
     val digestID: UInt,
     @ByteString val random: ByteArray,
     val elementIdentifier: String,
-    val elementValue: DataElementValue
+    val elementValue: AnyDataElement
 ) {
-    fun toDataElementValue(): DataElementValue {
-        return DataElementValue(mapOf(
-            MapKey("digestID") to DataElementValue(digestID.toLong()),
-            MapKey("random") to DataElementValue(random),
-            MapKey("elementIdentifier") to DataElementValue(elementIdentifier),
+    fun toMapElement(): MapElement {
+        return MapElement(mapOf(
+            MapKey("digestID") to NumberElement(digestID.toLong()),
+            MapKey("random") to ByteStringElement(random),
+            MapKey("elementIdentifier") to StringElement(elementIdentifier),
             MapKey("elementValue") to elementValue
         ))
     }
 
     companion object {
-        fun fromDataElementValue(value: DataElementValue): IssuerSignedItem {
+        fun fromMapElement(element: MapElement): IssuerSignedItem {
             return IssuerSignedItem(
-                value.map[MapKey("digestID")]!!.number.toInt().toUInt(),
-                value.map[MapKey("random")]!!.byteString,
-                value.map[MapKey("elementIdentifier")]!!.textString,
-                value.map[MapKey("elementValue")]!!
+                (element.value[MapKey("digestID")]!!.value as Number).toInt().toUInt(),
+                element.value[MapKey("random")]!!.value as ByteArray,
+                element.value[MapKey("elementIdentifier")]!!.value as String,
+                element.value[MapKey("elementValue")]!!
             )
         }
+    }
+}
+
+@Serializer(forClass = IssuerSignedItem::class)
+class IssuerSignedItemSerializer: KSerializer<IssuerSignedItem> {
+    override fun serialize(encoder: Encoder, value: IssuerSignedItem) {
+        encoder.encodeSerializableValue(DataElementSerializer, value.toMapElement())
+    }
+
+    override fun deserialize(decoder: Decoder): IssuerSignedItem {
+        return IssuerSignedItem.fromMapElement(decoder.decodeSerializableValue(DataElementSerializer) as MapElement)
     }
 }

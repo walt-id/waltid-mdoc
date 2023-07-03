@@ -45,7 +45,7 @@ sealed class Cbor(
 
     override fun <T> encodeToByteArray(serializer: SerializationStrategy<T>, value: T): ByteArray {
         val output = ByteArrayOutput()
-        val dumper = CborWriter(this, CborEncoder(output))
+        val dumper = CborWriter(this, CborEncoder(output), true)
         dumper.encodeSerializableValue(serializer, value)
         return output.toByteArray()
     }
