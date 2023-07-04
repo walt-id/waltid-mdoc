@@ -75,11 +75,20 @@ abstract class DataElement<T> (
     }
     return res
   }
+
+  override fun hashCode(): Int {
+    return value.hashCode()
+  }
+
+  @OptIn(ExperimentalSerializationApi::class)
+  fun toEncodedCBORElement() = EncodedCBORElement(Cbor.encodeToByteArray(DataElementSerializer, this))
 }
 
 typealias AnyDataElement = DataElement<*>
 @Serializable(with = DataElementSerializer::class)
-class NumberElement(value: Number): DataElement<Number>(value, DEAttribute(DEType.number))
+class NumberElement(value: Number): DataElement<Number>(value, DEAttribute(DEType.number)) {
+  constructor(value: UInt) : this(value.toLong())
+}
 @Serializable(with = DataElementSerializer::class)
 class BooleanElement(value: Boolean): DataElement<Boolean>(value, DEAttribute(DEType.boolean))
 @Serializable(with = DataElementSerializer::class)
@@ -87,7 +96,9 @@ class StringElement(value: String): DataElement<String>(value, DEAttribute(DETyp
 @Serializable(with = DataElementSerializer::class)
 class ByteStringElement(value: ByteArray): DataElement<ByteArray>(value, DEAttribute(DEType.byteString))
 @Serializable(with = DataElementSerializer::class)
-class ListElement(value: List<AnyDataElement>): DataElement<List<AnyDataElement>>(value, DEAttribute(DEType.list))
+class ListElement(value: List<AnyDataElement>): DataElement<List<AnyDataElement>>(value, DEAttribute(DEType.list)) {
+  constructor() : this(listOf())
+}
 @Serializable(with = DataElementSerializer::class)
 class MapElement(value: Map<MapKey, AnyDataElement>): DataElement<Map<MapKey, AnyDataElement>>(value, DEAttribute(DEType.map))
 @Serializable(with = DataElementSerializer::class)
@@ -115,6 +126,12 @@ class EncodedCBORElement(cborData: ByteArray): DataElement<ByteArray>(cborData, 
   }
   inline fun <reified T> decode(): T {
     return Cbor.decodeFromByteArray(value)
+  }
+
+  companion object {
+    @OptIn(ExperimentalSerializationApi::class)
+    fun fromEncodedCBORElementData(data: ByteArray)
+      = Cbor.decodeFromByteArray(DataElementSerializer, data) as EncodedCBORElement
   }
 }
 

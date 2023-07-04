@@ -9,16 +9,16 @@ import kotlinx.serialization.encoding.Encoder
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = IssuerSignedItemSerializer::class)
 data class IssuerSignedItem(
-    val digestID: UInt,
-    @ByteString val random: ByteArray,
-    val elementIdentifier: String,
+    val digestID: NumberElement,
+    val random: ByteStringElement,
+    val elementIdentifier: StringElement,
     val elementValue: AnyDataElement
 ) {
     fun toMapElement(): MapElement {
         return MapElement(mapOf(
-            MapKey("digestID") to NumberElement(digestID.toLong()),
-            MapKey("random") to ByteStringElement(random),
-            MapKey("elementIdentifier") to StringElement(elementIdentifier),
+            MapKey("digestID") to digestID,
+            MapKey("random") to random,
+            MapKey("elementIdentifier") to elementIdentifier,
             MapKey("elementValue") to elementValue
         ))
     }
@@ -26,9 +26,9 @@ data class IssuerSignedItem(
     companion object {
         fun fromMapElement(element: MapElement): IssuerSignedItem {
             return IssuerSignedItem(
-                (element.value[MapKey("digestID")]!!.value as Number).toInt().toUInt(),
-                element.value[MapKey("random")]!!.value as ByteArray,
-                element.value[MapKey("elementIdentifier")]!!.value as String,
+                (element.value[MapKey("digestID")]!! as NumberElement),
+                element.value[MapKey("random")]!! as ByteStringElement,
+                element.value[MapKey("elementIdentifier")]!! as StringElement,
                 element.value[MapKey("elementValue")]!!
             )
         }

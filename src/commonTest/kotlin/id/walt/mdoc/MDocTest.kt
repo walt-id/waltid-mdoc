@@ -4,11 +4,13 @@ import kotlinx.serialization.*
 import cbor.Cbor
 import id.walt.mdoc.model.*
 import id.walt.mdoc.model.dataelement.*
+import id.walt.mdoc.model.mso.ValidityInfo
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 
@@ -17,25 +19,24 @@ class MDocTest {
     @OptIn(ExperimentalSerializationApi::class)
     @Test
     fun testSerialization() {
-
-        val textItem = IssuerSignedItem(0u,byteArrayOf(1, 2, 3),"family_name", StringElement("Doe"))
-        val byteStringItem = IssuerSignedItem(0u,byteArrayOf(1, 2, 3),"byte_array", ByteStringElement(byteArrayOf(0,1,2)))
-        val intItem = IssuerSignedItem(0u,byteArrayOf(1, 2, 3),"age", NumberElement(35))
-        val floatItem = IssuerSignedItem(0u,byteArrayOf(1, 2, 3),"factor_x", NumberElement(0.5f))
-        val booleanItem = IssuerSignedItem(0u,byteArrayOf(1, 2, 3),"is_over_18", BooleanElement(true))
-        val listItem = IssuerSignedItem(0u,byteArrayOf(1, 2, 3),"driving_privileges", ListElement(listOf(StringElement("A"), StringElement("B"))))
-        val mapItem = IssuerSignedItem(0u,byteArrayOf(1, 2, 3),"attributes", MapElement(mapOf(MapKey("attribute1") to StringElement("X"), MapKey("attribute2") to StringElement("Y"))))
-        val nullItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "nothing", NullElement())
+        val textItem = IssuerSignedItem(0u.toDE(),byteArrayOf(1, 2, 3).toDE(),"family_name".toDE(), "Doe".toDE())
+        val byteStringItem = IssuerSignedItem(0u.toDE(),byteArrayOf(1, 2, 3).toDE(),"byte_array".toDE(), byteArrayOf(0,1,2).toDE())
+        val intItem = IssuerSignedItem(0u.toDE(),byteArrayOf(1, 2, 3).toDE(),"age".toDE(), 35.toDE())
+        val floatItem = IssuerSignedItem(0u.toDE(),byteArrayOf(1, 2, 3).toDE(),"factor_x".toDE(), 0.5f.toDE())
+        val booleanItem = IssuerSignedItem(0u.toDE(),byteArrayOf(1, 2, 3).toDE(),"is_over_18".toDE(), true.toDE())
+        val listItem = IssuerSignedItem(0u.toDE(),byteArrayOf(1, 2, 3).toDE(),"driving_privileges".toDE(), listOf("A".toDE(), "B".toDE()).toDE())
+        val mapItem = IssuerSignedItem(0u.toDE(),byteArrayOf(1, 2, 3).toDE(),"attributes".toDE(), mapOf("attribute1" to "X".toDE(), "attribute2" to "Y".toDE()).toDE())
+        val nullItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "nothing".toDE(), NullElement())
         val embeddedCborValue = "The encoded item"
-        val cborItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "encoded_cbor", EncodedCBORElement(Cbor.encodeToByteArray(embeddedCborValue)))
-        val tdateItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "issue_date", TDateElement(Clock.System.now()))
-        val tdateIntItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "issue_date_int", DateTimeElement(Clock.System.now(), DEDateTimeMode.time_int))
-        val tdateDblItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "issue_date_dbl", DateTimeElement(Clock.System.now(), DEDateTimeMode.time_double))
-        val fullDateStrItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "birth_date", FullDateElement(LocalDate.parse("1983-07-05"), DEFullDateMode.full_date_str))
-        val fullDateIntItem = IssuerSignedItem(0u, byteArrayOf(1,2,3), "expiry_date", FullDateElement(LocalDate.parse("2025-12-31"), DEFullDateMode.full_date_int))
+        val cborItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "encoded_cbor".toDE(), EncodedCBORElement(Cbor.encodeToByteArray(embeddedCborValue)))
+        val tdateItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "issue_date".toDE(), Clock.System.now().toDE())
+        val tdateIntItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "issue_date_int".toDE(), Clock.System.now().toDE(DEDateTimeMode.time_int))
+        val tdateDblItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "issue_date_dbl".toDE(), Clock.System.now().toDE(DEDateTimeMode.time_double))
+        val fullDateStrItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "birth_date".toDE(), LocalDate.parse("1983-07-05").toDE(DEFullDateMode.full_date_str))
+        val fullDateIntItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "expiry_date".toDE(), LocalDate.parse("2025-12-31").toDE(DEFullDateMode.full_date_int))
 
         val mdoc = MDocResponse(
-            version = "1.0",
+            version = "1.0".toDE(),
             documents = listOf(
                 MDocBuilder("org.iso.18013.5.1.mDL").
                     addIssuerSignedItems(
@@ -78,6 +79,26 @@ class MDocTest {
         val item = mdoc.documents[0].issuerSigned.nameSpaces!!["org.iso.18013.5.1"]!![0].decode<IssuerSignedItem>()
         item.elementValue.type shouldBe DEType.textString
         (item.elementValue as StringElement).value shouldBe "Doe"
+
+        // try decode MSO
+        val mso = mdoc.documents[0].MSO
+        mso shouldNotBe null
+        mso!!.docType.value shouldBe "org.iso.18013.5.1.mDL"
+        mso.digestAlgorithm.value shouldBe "SHA-256"
+        mso.version.value shouldBe "1.0"
+        mso.nameSpaces shouldContainAll setOf("org.iso.18013.5.1", "org.iso.18013.5.1.US")
+        val digests1 = mso.getValueDigestsFor("org.iso.18013.5.1")
+        digests1.size shouldBe 13
+        digests1.keys shouldContainAll IntRange(0, 12).toSet()
+        val digests2 = mso.getValueDigestsFor("org.iso.18013.5.1.US")
+        digests2.size shouldBe 4
+        mso.deviceKeyInfo.deviceKey.value[MapKey(1)]!!.value shouldBe 2
+        mso.deviceKeyInfo.deviceKey.value[MapKey(-1)]!!.value shouldBe 1
+        (mso.deviceKeyInfo.deviceKey.value[MapKey(-2)]!! as ByteStringElement).value.first() shouldBe 0x96.toByte()
+        (mso.deviceKeyInfo.deviceKey.value[MapKey(-3)]!! as ByteStringElement).value.first() shouldBe 0x1F.toByte()
+        mso.validityInfo.signed.value shouldBe Instant.parse("2020-10-01T13:30:02Z")
+        mso.validityInfo.validFrom.value shouldBe Instant.parse("2020-10-01T13:30:02Z")
+        mso.validityInfo.validUntil.value shouldBe Instant.parse("2021-10-01T13:30:02Z")
     }
 
     @OptIn(ExperimentalSerializationApi::class)
@@ -93,11 +114,9 @@ class MDocTest {
                 MapKey(-1) to StringElement("Element -1"),
                 MapKey(5) to StringElement("Element 5")
         )
-        //val mapElement = DataElementValue(intMap)
         val cbor = Cbor.encodeToHexString(intMap)
         println(cbor)
         val parsedMapElement = Cbor.decodeFromHexString<MapElement>(cbor)
-        //parsedMapElement.type shouldBe DEType.map
         intMap.forEach {
             parsedMapElement.value[it.key] shouldBe it.value
         }

@@ -2,6 +2,7 @@ package id.walt.mdoc.model
 
 import cbor.Cbor
 import id.walt.mdoc.model.dataelement.*
+import id.walt.mdoc.model.mso.MSO
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromByteArray
@@ -9,15 +10,21 @@ import kotlinx.serialization.encodeToByteArray
 
 @Serializable
 data class MDoc(
-    val docType: String,
+    val docType: StringElement,
     val issuerSigned: IssuerSigned,
     val deviceSigned: DeviceSigned
 ) {
     fun getIssuerSignedItems(nameSpace: String): List<IssuerSignedItem> {
         return issuerSigned.nameSpaces?.get(nameSpace)?.map {
-            Cbor.decodeFromByteArray<IssuerSignedItem>(it.value)
+            it.decode<IssuerSignedItem>()
         }?.toList() ?: listOf()
     }
+
+    val MSO
+        get() = issuerSigned.issuerAuth.getMSO()
+
+    val nameSpaces
+        get() = issuerSigned.nameSpaces?.keys ?: setOf()
 }
 
 class MDocBuilder(val docType: String) {
@@ -33,8 +40,8 @@ class MDocBuilder(val docType: String) {
 
     fun build(): MDoc {
         return MDoc(
-            docType,
-            IssuerSigned(nameSpacesMap.mapValues { it.value.toList() }, IssuerAuth(listOf())),
+            StringElement(docType),
+            IssuerSigned(nameSpacesMap.mapValues { it.value.toList() }, IssuerAuth(ListElement())),
             DeviceSigned(
                 EncodedCBORElement(MapElement(mapOf())),
                 DeviceAuth(deviceMac = ListElement(listOf()))

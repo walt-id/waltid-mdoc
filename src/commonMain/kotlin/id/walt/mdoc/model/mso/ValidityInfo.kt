@@ -1,4 +1,4 @@
-package id.walt.mdoc.model
+package id.walt.mdoc.model.mso
 
 import id.walt.mdoc.model.dataelement.TDateElement
 import kotlinx.datetime.Instant
