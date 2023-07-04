@@ -1,4 +1,4 @@
-package id.walt.mdoc.model.dataelement
+package id.walt.mdoc.dataelement
 
 import cbor.internal.*
 import cbor.internal.decoding.decodeByteString
@@ -6,15 +6,11 @@ import cbor.internal.decoding.decodeTag
 import cbor.internal.decoding.peek
 import cbor.internal.encoding.encodeByteString
 import cbor.internal.encoding.encodeTag
-import id.walt.mdoc.model.*
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.*
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.SerialKind
-import kotlinx.serialization.descriptors.buildSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 

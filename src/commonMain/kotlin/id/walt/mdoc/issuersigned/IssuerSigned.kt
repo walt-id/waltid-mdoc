@@ -1,6 +1,6 @@
-package id.walt.mdoc.model
+package id.walt.mdoc.issuersigned
 
-import id.walt.mdoc.model.dataelement.EncodedCBORElement
+import id.walt.mdoc.dataelement.EncodedCBORElement
 import kotlinx.serialization.Serializable
 
 @Serializable

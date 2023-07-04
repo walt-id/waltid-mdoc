@@ -1,16 +1,12 @@
-package id.walt.mdoc.model
+package id.walt.mdoc.issuersigned
 
-import cbor.Cbor
-import id.walt.mdoc.model.dataelement.*
-import id.walt.mdoc.model.mso.MSO
+import id.walt.mdoc.dataelement.*
+import id.walt.mdoc.mso.MSO
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializer
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.decodeFromByteArray
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlin.math.cos
 
 @Serializable(with = IssuerAuthSerializer::class)
 class IssuerAuth(

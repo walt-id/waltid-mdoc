@@ -2,9 +2,12 @@ package id.walt.mdoc
 
 import kotlinx.serialization.*
 import cbor.Cbor
-import id.walt.mdoc.model.*
-import id.walt.mdoc.model.dataelement.*
-import id.walt.mdoc.model.mso.ValidityInfo
+import id.walt.mdoc.dataelement.*
+import id.walt.mdoc.devicesigned.DeviceAuth
+import id.walt.mdoc.devicesigned.DeviceSigned
+import id.walt.mdoc.issuersigned.IssuerAuth
+import id.walt.mdoc.issuersigned.IssuerSignedItem
+import id.walt.mdoc.mso.ValidityInfo
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -30,10 +33,14 @@ class MDocTest {
         val embeddedCborValue = "The encoded item"
         val cborItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "encoded_cbor".toDE(), EncodedCBORElement(Cbor.encodeToByteArray(embeddedCborValue)))
         val tdateItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "issue_date".toDE(), Clock.System.now().toDE())
-        val tdateIntItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "issue_date_int".toDE(), Clock.System.now().toDE(DEDateTimeMode.time_int))
-        val tdateDblItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "issue_date_dbl".toDE(), Clock.System.now().toDE(DEDateTimeMode.time_double))
-        val fullDateStrItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "birth_date".toDE(), LocalDate.parse("1983-07-05").toDE(DEFullDateMode.full_date_str))
-        val fullDateIntItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "expiry_date".toDE(), LocalDate.parse("2025-12-31").toDE(DEFullDateMode.full_date_int))
+        val tdateIntItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "issue_date_int".toDE(), Clock.System.now().toDE(
+            DEDateTimeMode.time_int))
+        val tdateDblItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "issue_date_dbl".toDE(), Clock.System.now().toDE(
+            DEDateTimeMode.time_double))
+        val fullDateStrItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "birth_date".toDE(), LocalDate.parse("1983-07-05").toDE(
+            DEFullDateMode.full_date_str))
+        val fullDateIntItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "expiry_date".toDE(), LocalDate.parse("2025-12-31").toDE(
+            DEFullDateMode.full_date_int))
 
         val mdoc = MDocResponse(
             version = "1.0".toDE(),
@@ -41,7 +48,9 @@ class MDocTest {
                 MDocBuilder("org.iso.18013.5.1.mDL").
                     addIssuerSignedItems(
                         "org.iso.18013.5.1", textItem, byteStringItem, intItem, floatItem, booleanItem, listItem, mapItem, nullItem, cborItem, tdateItem, tdateIntItem, tdateDblItem, fullDateStrItem, fullDateIntItem
-                    ).build()
+                    ).build(DeviceSigned(EncodedCBORElement(byteArrayOf()), DeviceAuth(ListElement())),
+                            IssuerAuth(ListElement())
+                )
             )
         )
         val mdocHex = Cbor.encodeToHexString(mdoc).uppercase()
@@ -129,7 +138,8 @@ class MDocTest {
             MapElement(mapOf()),
             NullElement(),
             ByteStringElement(byteArrayOf(0xe9.toByte(), 0x95.toByte()))
-        )))
+        ))
+        )
         val hex = Cbor.encodeToHexString(deviceAuth)
         println("DeviceAuth: $hex")
         val parsedAuth = Cbor.decodeFromHexString<DeviceAuth>(hex)

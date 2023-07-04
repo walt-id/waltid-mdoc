@@ -1,10 +1,9 @@
-package id.walt.mdoc.model
+package id.walt.mdoc.devicesigned
 
-import id.walt.mdoc.model.dataelement.*
+import id.walt.mdoc.dataelement.*
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Serializer
-import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 @Serializable(with = DeviceAuthSerializer::class)

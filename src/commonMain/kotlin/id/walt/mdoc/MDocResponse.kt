@@ -1,10 +1,8 @@
 package id.walt.mdoc
 
-import id.walt.mdoc.model.MDoc
-import id.walt.mdoc.model.MDocResponseStatus
-import id.walt.mdoc.model.dataelement.NumberElement
-import id.walt.mdoc.model.dataelement.StringElement
-import id.walt.mdoc.model.dataelement.toDE
+import id.walt.mdoc.dataelement.NumberElement
+import id.walt.mdoc.dataelement.StringElement
+import id.walt.mdoc.dataelement.toDE
 import kotlinx.serialization.Serializable
 
 @Serializable

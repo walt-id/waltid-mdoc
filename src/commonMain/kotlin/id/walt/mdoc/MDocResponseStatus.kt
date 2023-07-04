@@ -1,4 +1,4 @@
-package id.walt.mdoc.model
+package id.walt.mdoc
 
 enum class MDocResponseStatus(val status: UInt) {
   OK(0u),

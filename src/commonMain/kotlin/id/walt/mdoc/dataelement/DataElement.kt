@@ -1,7 +1,6 @@
-package id.walt.mdoc.model.dataelement
+package id.walt.mdoc.dataelement
 
 import cbor.Cbor
-import id.walt.mdoc.model.*
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.ExperimentalSerializationApi

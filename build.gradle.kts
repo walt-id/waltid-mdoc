@@ -51,6 +51,7 @@ kotlin {
                 //implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:1.5.1")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+                implementation("com.soywiz.korlibs.krypto:krypto:$kryptoVersion")
             }
         }
         val commonTest by getting {
@@ -63,6 +64,7 @@ kotlin {
         }
         val jvmMain by getting {
             dependencies {
+                implementation("com.augustcellars.cose:cose-java:0.9.7")
             }
         }
         val jvmTest by getting {

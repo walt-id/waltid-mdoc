@@ -1,8 +1,11 @@
-package id.walt.mdoc.model
+package id.walt.mdoc.issuersigned
 
-import cbor.ByteString
-import id.walt.mdoc.model.dataelement.*
-import kotlinx.serialization.*
+import id.walt.mdoc.dataelement.*
+import korlibs.crypto.SecureRandom
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Serializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
@@ -31,6 +34,10 @@ data class IssuerSignedItem(
                 element.value[MapKey("elementIdentifier")]!! as StringElement,
                 element.value[MapKey("elementValue")]!!
             )
+        }
+
+        fun createWithRandomSalt(digestID: UInt, elementIdentifier: String, elementValue: AnyDataElement): IssuerSignedItem {
+            return IssuerSignedItem(digestID.toDE(),  SecureRandom.nextBytes(16).toDE(), elementIdentifier.toDE(), elementValue)
         }
     }
 }
