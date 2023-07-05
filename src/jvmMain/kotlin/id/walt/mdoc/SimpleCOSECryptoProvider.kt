@@ -1,12 +1,10 @@
 package id.walt.mdoc
 
 import COSE.*
-import cbor.Cbor
 import id.walt.mdoc.cose.COSECryptoProvider
-import id.walt.mdoc.dataelement.*
+import id.walt.mdoc.dataelement.DataElement
+import id.walt.mdoc.dataelement.ListElement
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.decodeFromByteArray
-import kotlinx.serialization.encodeToByteArray
 import java.security.PrivateKey
 import java.security.PublicKey
 

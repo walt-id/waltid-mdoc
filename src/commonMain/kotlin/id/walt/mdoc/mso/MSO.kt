@@ -1,11 +1,9 @@
 package id.walt.mdoc.mso
 
-import cbor.Cbor
 import id.walt.mdoc.dataelement.*
 import id.walt.mdoc.issuersigned.IssuerSignedItem
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToByteArray
 
 @Serializable
 class MSO (

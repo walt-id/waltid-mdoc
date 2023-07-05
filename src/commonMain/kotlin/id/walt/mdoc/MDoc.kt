@@ -1,9 +1,10 @@
 package id.walt.mdoc
 
-import cbor.Cbor
 import id.walt.mdoc.cose.AsyncCOSECryptoProvider
 import id.walt.mdoc.cose.COSECryptoProvider
-import id.walt.mdoc.dataelement.*
+import id.walt.mdoc.dataelement.AnyDataElement
+import id.walt.mdoc.dataelement.EncodedCBORElement
+import id.walt.mdoc.dataelement.StringElement
 import id.walt.mdoc.devicesigned.DeviceSigned
 import id.walt.mdoc.issuersigned.IssuerAuth
 import id.walt.mdoc.issuersigned.IssuerSigned
