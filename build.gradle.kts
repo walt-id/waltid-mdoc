@@ -64,7 +64,7 @@ kotlin {
         }
         val jvmMain by getting {
             dependencies {
-                implementation("com.augustcellars.cose:cose-java:0.9.7")
+                implementation("com.augustcellars.cose:cose-java:1.1.0")
             }
         }
         val jvmTest by getting {

@@ -33,6 +33,7 @@ object DataElementSerializer: KSerializer<AnyDataElement> {
           ENCODED_CBOR -> EncodedCBORElement(decoder.decodeByteString())
           TDATE, TIME -> deserializeDateTime(decoder, tag)
           FULL_DATE_STR, FULL_DATE_INT -> deserializeFullDate(decoder, tag)
+          COSE_SIGN1 -> ListElement(decoder.decodeSerializableValue(ListSerializer(DataElementSerializer)))
           else -> throw SerializationException("The given tagged value type is currently not supported")
         }
       }

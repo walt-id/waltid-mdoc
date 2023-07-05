@@ -31,7 +31,7 @@ class MDocTest {
         val mapItem = IssuerSignedItem(0u.toDE(),byteArrayOf(1, 2, 3).toDE(),"attributes".toDE(), mapOf("attribute1" to "X".toDE(), "attribute2" to "Y".toDE()).toDE())
         val nullItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "nothing".toDE(), NullElement())
         val embeddedCborValue = "The encoded item"
-        val cborItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "encoded_cbor".toDE(), EncodedCBORElement(Cbor.encodeToByteArray(embeddedCborValue)))
+        val cborItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "encoded_cbor".toDE(), EncodedCBORElement(StringElement(embeddedCborValue)))
         val tdateItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "issue_date".toDE(), Clock.System.now().toDE())
         val tdateIntItem = IssuerSignedItem(0u.toDE(), byteArrayOf(1,2,3).toDE(), "issue_date_int".toDE(), Clock.System.now().toDE(
             DEDateTimeMode.time_int))
@@ -108,6 +108,7 @@ class MDocTest {
         mso.validityInfo.signed.value shouldBe Instant.parse("2020-10-01T13:30:02Z")
         mso.validityInfo.validFrom.value shouldBe Instant.parse("2020-10-01T13:30:02Z")
         mso.validityInfo.validUntil.value shouldBe Instant.parse("2021-10-01T13:30:02Z")
+        mdoc.documents[0].verifyIssuerSignedItems() shouldBe true
     }
 
     @OptIn(ExperimentalSerializationApi::class)

@@ -3,8 +3,6 @@ package id.walt.mdoc.mso
 import cbor.Cbor
 import id.walt.mdoc.dataelement.*
 import id.walt.mdoc.issuersigned.IssuerSignedItem
-import korlibs.crypto.HasherFactory
-import korlibs.crypto.SHA256
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToByteArray
@@ -37,22 +35,36 @@ class MSO (
     "validityInfo" to validityInfo.toMapElement()
   ).toDE()
 
+  fun verifySignedItems(nameSpace: String, items: List<EncodedCBORElement>): Boolean {
+    val msoDigests = getValueDigestsFor(nameSpace)
+    val algorithm = DigestAlgorithm.values().first { it.value == digestAlgorithm.value }
+    return items.all {
+      val digestId = it.decode<IssuerSignedItem>().digestID.value.toInt()
+      return msoDigests.containsKey(digestId) && msoDigests[digestId]!!.contentEquals(digestItem(it, algorithm))
+    }
+  }
+
   companion object {
+
+    fun digestItem(encodedItem: EncodedCBORElement, digestAlgorithm: DigestAlgorithm): ByteArray {
+      return digestAlgorithm.getHasher().digest(encodedItem.toCBOR()).bytes
+    }
+
     @OptIn(ExperimentalSerializationApi::class)
     fun createFor(nameSpaces: Map<String, List<IssuerSignedItem>>,
                   deviceKeyInfo: DeviceKeyInfo,
                   docType: String,
                   validityInfo: ValidityInfo,
-                  digestAlgorithm: HasherFactory = SHA256): MSO {
+                  digestAlgorithm: DigestAlgorithm = DigestAlgorithm.SHA256): MSO {
       return MSO(
         "1.0".toDE(),
-        digestAlgorithm.name.toDE(),
+        digestAlgorithm.value.toDE(),
         nameSpaces.mapValues { entry ->
           entry.value.map { item ->
             Pair(
               item.digestID.value.toInt(),
               ByteStringElement(
-                digestAlgorithm.digest(Cbor.encodeToByteArray(EncodedCBORElement(item.toMapElement()))).bytes
+                digestItem(EncodedCBORElement(item.toMapElement()), digestAlgorithm)
               )
             )
           }.toMap().toDE()

@@ -20,17 +20,28 @@ data class MDoc(
     val issuerSigned: IssuerSigned,
     val deviceSigned: DeviceSigned
 ) {
+    val MSO
+        get() = issuerSigned.issuerAuth.getMSO()
+
+    val nameSpaces
+        get() = issuerSigned.nameSpaces?.keys ?: setOf()
+
     fun getIssuerSignedItems(nameSpace: String): List<IssuerSignedItem> {
         return issuerSigned.nameSpaces?.get(nameSpace)?.map {
             it.decode<IssuerSignedItem>()
         }?.toList() ?: listOf()
     }
 
-    val MSO
-        get() = issuerSigned.issuerAuth.getMSO()
+    fun verifyIssuerSignedItems(): Boolean {
+        val mso = MSO ?: throw Exception("No MSO object found on this mdoc")
+        return issuerSigned.nameSpaces?.all { nameSpace ->
+            mso.verifySignedItems(nameSpace.key, nameSpace.value)
+        } ?: true
+    }
 
-    val nameSpaces
-        get() = issuerSigned.nameSpaces?.keys ?: setOf()
+    fun verify(cryptoProvider: COSECryptoProvider, keyID: String? = null): Boolean {
+        return verifyIssuerSignedItems() && cryptoProvider.verify1(issuerSigned.issuerAuth.cose_sign1, keyID)
+    }
 }
 
 class MDocBuilder(val docType: String) {
@@ -45,7 +56,7 @@ class MDocBuilder(val docType: String) {
         val items = nameSpacesMap.getOrPut(nameSpace) { mutableListOf() }
         items.add(
             IssuerSignedItem.createWithRandomSalt(
-                (items.maxOfOrNull { it.digestID.value.toLong().toUInt() } ?: 0u) + 1u,
+                items.maxOfOrNull { it.digestID.value.toLong().toUInt() }?.plus(1u) ?: 0u,
                 elementIdentifier,
                 elementValue
             )
@@ -69,7 +80,7 @@ class MDocBuilder(val docType: String) {
                           deviceKeyInfo: DeviceKeyInfo, deviceSigned: DeviceSigned,
                           keyID: String? = null): MDoc {
         val mso = MSO.createFor(nameSpacesMap, deviceKeyInfo, docType, validityInfo)
-        val cose_sign1 = cryptoProvider.sign1(Cbor.encodeToByteArray(DataElementSerializer, EncodedCBORElement(mso.toMapElement())), keyID)
+        val cose_sign1 = cryptoProvider.sign1(mso.toMapElement().toEncodedCBORElement().toCBOR(), keyID)
         return build(deviceSigned, IssuerAuth(cose_sign1))
     }
 
@@ -78,7 +89,7 @@ class MDocBuilder(val docType: String) {
              deviceKeyInfo: DeviceKeyInfo, deviceSigned: DeviceSigned,
              keyID: String? = null): MDoc {
         val mso = MSO.createFor(nameSpacesMap, deviceKeyInfo, docType, validityInfo)
-        val cose_sign1 = cryptoProvider.sign1(Cbor.encodeToByteArray(DataElementSerializer, EncodedCBORElement(mso.toMapElement())), keyID)
+        val cose_sign1 = cryptoProvider.sign1(mso.toMapElement().toEncodedCBORElement().toCBOR(), keyID)
         return build(deviceSigned, IssuerAuth(cose_sign1))
     }
 }

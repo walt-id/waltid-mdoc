@@ -3,21 +3,34 @@ package id.walt.mdoc
 import COSE.*
 import cbor.Cbor
 import id.walt.mdoc.cose.COSECryptoProvider
-import id.walt.mdoc.dataelement.AnyDataElement
-import id.walt.mdoc.dataelement.DataElementSerializer
-import id.walt.mdoc.dataelement.ListElement
-import id.walt.mdoc.dataelement.toDE
+import id.walt.mdoc.dataelement.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromByteArray
+import kotlinx.serialization.encodeToByteArray
+import java.security.PrivateKey
+import java.security.PublicKey
 
-class SimpleCOSECryptoProvider: COSECryptoProvider {
+class SimpleCOSECryptoProvider(
+  val algorithmID: AlgorithmID,
+  val key: OneKey
+): COSECryptoProvider {
+
+  constructor(algorithmID: AlgorithmID, publicKey: PublicKey?, privateKey: PrivateKey?) : this(algorithmID, OneKey(publicKey, privateKey))
+
   @OptIn(ExperimentalSerializationApi::class)
   override fun sign1(payload: ByteArray, keyID: String?): ListElement {
     val sign1Msg = Sign1Message()
-    sign1Msg.addAttribute(HeaderKeys.Algorithm, AlgorithmID.ECDSA_256.AsCBOR(), Attribute.PROTECTED)
+    sign1Msg.addAttribute(HeaderKeys.Algorithm, algorithmID.AsCBOR(), Attribute.PROTECTED)
     sign1Msg.SetContent(payload)
-    sign1Msg.sign(OneKey.generateKey(AlgorithmID.ECDSA_256))
+    sign1Msg.sign(key)
+
     val cborObj = sign1Msg.EncodeToCBORObject()
-    return Cbor.decodeFromByteArray<AnyDataElement>(DataElementSerializer, cborObj.EncodeToBytes()) as ListElement
+    return DataElement.fromCBOR<ListElement>(cborObj.EncodeToBytes())
+  }
+
+  @OptIn(ExperimentalSerializationApi::class)
+  override fun verify1(coseSign1: ListElement, keyID: String?): Boolean {
+    val sign1Msg = Sign1Message.DecodeFromBytes(coseSign1.toCBOR(), MessageTag.Sign1) as Sign1Message
+    return sign1Msg.validate(key)
   }
 }

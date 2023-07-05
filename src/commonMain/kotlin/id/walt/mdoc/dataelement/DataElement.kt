@@ -80,7 +80,16 @@ abstract class DataElement<T> (
   }
 
   @OptIn(ExperimentalSerializationApi::class)
-  fun toEncodedCBORElement() = EncodedCBORElement(Cbor.encodeToByteArray(DataElementSerializer, this))
+  fun toCBOR() = Cbor.encodeToByteArray(DataElementSerializer, this)
+  @OptIn(ExperimentalSerializationApi::class)
+  fun toEncodedCBORElement() = EncodedCBORElement(this.toCBOR())
+
+  companion object {
+    @OptIn(ExperimentalSerializationApi::class)
+    fun <T : AnyDataElement> fromCBOR(cbor: ByteArray): T {
+      return Cbor.decodeFromByteArray(DataElementSerializer, cbor) as T
+    }
+  }
 }
 
 typealias AnyDataElement = DataElement<*>
@@ -115,13 +124,13 @@ class FullDateElement(value: LocalDate, subType: DEFullDateMode = DEFullDateMode
 @Serializable(with = DataElementSerializer::class)
 class EncodedCBORElement(cborData: ByteArray): DataElement<ByteArray>(cborData, DEAttribute(DEType.encodedCbor)) {
   @OptIn(ExperimentalSerializationApi::class)
-  constructor(element: AnyDataElement) : this(Cbor.encodeToByteArray(DataElementSerializer, element))
+  constructor(element: AnyDataElement) : this(element.toCBOR())
 
   fun decode(): AnyDataElement {
-    return decodeDataElement()
+    return fromCBOR(value)
   }
-  inline fun <reified T: DataElement<*>> decodeDataElement(): T {
-    return Cbor.decodeFromByteArray(DataElementSerializer, value) as T
+  inline fun <reified T: AnyDataElement> decodeDataElement(): T {
+    return fromCBOR<T>(value)
   }
   inline fun <reified T> decode(): T {
     return Cbor.decodeFromByteArray(value)
@@ -129,8 +138,8 @@ class EncodedCBORElement(cborData: ByteArray): DataElement<ByteArray>(cborData, 
 
   companion object {
     @OptIn(ExperimentalSerializationApi::class)
-    fun fromEncodedCBORElementData(data: ByteArray)
-      = Cbor.decodeFromByteArray(DataElementSerializer, data) as EncodedCBORElement
+    fun fromEncodedCBORElementData(data: ByteArray): EncodedCBORElement
+      = fromCBOR<EncodedCBORElement>(data)
   }
 }
 
