@@ -45,5 +45,13 @@ class JVMMdocTest {
     signedItems.first().digestID.value shouldBe 0
     mdoc.MSO!!.valueDigests.value shouldContainKey MapKey("org.iso.18013.5.1")
     mdoc.verify(cryptoProvider) shouldBe true
+
+    val mdocTampered = MDocBuilder("org.iso.18013.5.1.mDL")
+      .addItemToSign("org.iso.18013.5.1", "family_name", "Foe".toDE())
+      .build(mdoc.deviceSigned, mdoc.issuerSigned.issuerAuth)
+    // MSO is valid, signature check should succeed
+    cryptoProvider.verify1(mdoc.issuerSigned.issuerAuth.cose_sign1) shouldBe true
+    // signed item was tampered, overall verification should fail
+    mdocTampered.verify(cryptoProvider) shouldBe false
   }
 }
