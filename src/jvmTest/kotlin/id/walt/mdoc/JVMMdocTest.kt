@@ -50,7 +50,7 @@ class JVMMdocTest {
       .addItemToSign("org.iso.18013.5.1", "family_name", "Foe".toDE())
       .build(mdoc.deviceSigned, mdoc.issuerSigned.issuerAuth)
     // MSO is valid, signature check should succeed
-    cryptoProvider.verify1(mdoc.issuerSigned.issuerAuth.cose_sign1) shouldBe true
+    cryptoProvider.verify1(mdocTampered.issuerSigned.issuerAuth.cose_sign1) shouldBe true
     // signed item was tampered, overall verification should fail
     mdocTampered.verify(cryptoProvider) shouldBe false
   }
