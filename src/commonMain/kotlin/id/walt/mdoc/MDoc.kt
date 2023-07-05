@@ -12,6 +12,7 @@ import id.walt.mdoc.issuersigned.IssuerSignedItem
 import id.walt.mdoc.mso.DeviceKeyInfo
 import id.walt.mdoc.mso.MSO
 import id.walt.mdoc.mso.ValidityInfo
+import kotlinx.datetime.Clock
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
@@ -35,13 +36,34 @@ data class MDoc(
 
     fun verifyIssuerSignedItems(): Boolean {
         val mso = MSO ?: throw Exception("No MSO object found on this mdoc")
+
         return issuerSigned.nameSpaces?.all { nameSpace ->
             mso.verifySignedItems(nameSpace.key, nameSpace.value)
-        } ?: true
+        } ?: true                                                       // 3.
+    }
+
+    fun verifyCertificate(): Boolean {
+        // TODO: check certificate in header                           // 1.
+        // 5.1 && TODO: check signed date against certificate in header (-> 1)
+        return true
+    }
+
+    fun verifyValidity(): Boolean {
+        val mso = MSO ?: throw Exception("No MSO object found on this mdoc")
+        return mso.validityInfo.validFrom.value <= Clock.System.now()      && // 5.2
+        mso.validityInfo.validUntil.value >= Clock.System.now()               // 5.3
+    }
+
+    fun verifyDocType(): Boolean {
+        val mso = MSO ?: throw Exception("No MSO object found on this mdoc")
+        return mso.docType == docType                                         // 4.
     }
 
     fun verify(cryptoProvider: COSECryptoProvider, keyID: String? = null): Boolean {
-        return verifyIssuerSignedItems() && cryptoProvider.verify1(issuerSigned.issuerAuth.cose_sign1, keyID)
+        // TODO: check points 1-5 of ISO 18013-5: 9.3.1
+        return  verifyCertificate() && verifyValidity() && verifyDocType()      &&  // 1, 4.,5.
+                verifyIssuerSignedItems()                                       &&  // 3.
+                cryptoProvider.verify1(issuerSigned.issuerAuth.cose_sign1, keyID)   // 2.
     }
 }
 

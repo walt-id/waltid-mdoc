@@ -112,6 +112,7 @@ class MDocTest {
 
         // verify issuer signed item digests
         mdoc.documents[0].verifyIssuerSignedItems() shouldBe true
+        mdoc.documents[0].verifyValidity() shouldBe false // example already expired
     }
 
     @OptIn(ExperimentalSerializationApi::class)
