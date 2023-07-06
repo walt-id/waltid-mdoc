@@ -59,11 +59,15 @@ data class MDoc(
         return mso.docType == docType                                         // 4.
     }
 
+    fun verifySignature(cryptoProvider: COSECryptoProvider, keyID: String? = null): Boolean {
+        return cryptoProvider.verify1(issuerSigned.issuerAuth.cose_sign1, keyID)
+    }
+
     fun verify(cryptoProvider: COSECryptoProvider, keyID: String? = null): Boolean {
         // TODO: check points 1-5 of ISO 18013-5: 9.3.1
         return  verifyCertificate() && verifyValidity() && verifyDocType()      &&  // 1, 4.,5.
                 verifyIssuerSignedItems()                                       &&  // 3.
-                cryptoProvider.verify1(issuerSigned.issuerAuth.cose_sign1, keyID)   // 2.
+                verifySignature(cryptoProvider, keyID)                              // 2.
     }
 }
 
