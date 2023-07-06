@@ -1,8 +1,7 @@
 package id.walt.mdoc.cose
 
-import id.walt.mdoc.dataelement.ListElement
-
 interface COSECryptoProvider {
-  fun sign1(payload: ByteArray, keyID: String? = null): ListElement
-  fun verify1(coseSign1: ListElement, keyID: String? = null): Boolean
+  fun sign1(payload: ByteArray, keyID: String? = null): COSESign1
+  fun verify1(coseSign1: COSESign1, keyID: String? = null): Boolean
+  fun verifyX5Chain(coseSign1: COSESign1, keyID: String? = null): Boolean
 }

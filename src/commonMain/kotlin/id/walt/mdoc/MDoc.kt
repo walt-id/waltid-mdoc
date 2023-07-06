@@ -6,7 +6,7 @@ import id.walt.mdoc.dataelement.AnyDataElement
 import id.walt.mdoc.dataelement.EncodedCBORElement
 import id.walt.mdoc.dataelement.StringElement
 import id.walt.mdoc.devicesigned.DeviceSigned
-import id.walt.mdoc.issuersigned.IssuerAuth
+import id.walt.mdoc.cose.COSESign1
 import id.walt.mdoc.issuersigned.IssuerSigned
 import id.walt.mdoc.issuersigned.IssuerSignedItem
 import id.walt.mdoc.mso.DeviceKeyInfo
@@ -22,8 +22,11 @@ data class MDoc(
     val issuerSigned: IssuerSigned,
     val deviceSigned: DeviceSigned
 ) {
+    var _mso: MSO? = null
     val MSO
-        get() = issuerSigned.issuerAuth.getMSO()
+        get() = _mso ?: issuerSigned.issuerAuth.payload?.let { data ->
+            EncodedCBORElement.fromEncodedCBORElementData(data).decode<MSO>()
+        }.also { _mso = it }
 
     val nameSpaces
         get() = issuerSigned.nameSpaces?.keys ?: setOf()
@@ -42,10 +45,8 @@ data class MDoc(
         } ?: true                                                       // 3.
     }
 
-    fun verifyCertificate(): Boolean {
-        // TODO: check certificate in header                           // 1.
-        // 5.1 && TODO: check signed date against certificate in header (-> 1)
-        return true
+    fun verifyCertificate(cryptoProvider: COSECryptoProvider, keyID: String? = null): Boolean {
+        return cryptoProvider.verifyX5Chain(issuerSigned.issuerAuth, keyID)
     }
 
     fun verifyValidity(): Boolean {
@@ -60,14 +61,15 @@ data class MDoc(
     }
 
     fun verifySignature(cryptoProvider: COSECryptoProvider, keyID: String? = null): Boolean {
-        return cryptoProvider.verify1(issuerSigned.issuerAuth.cose_sign1, keyID)
+        return cryptoProvider.verify1(issuerSigned.issuerAuth, keyID)
     }
 
     fun verify(cryptoProvider: COSECryptoProvider, keyID: String? = null): Boolean {
-        // TODO: check points 1-5 of ISO 18013-5: 9.3.1
-        return  verifyCertificate() && verifyValidity() && verifyDocType()      &&  // 1, 4.,5.
-                verifyIssuerSignedItems()                                       &&  // 3.
-                verifySignature(cryptoProvider, keyID)                              // 2.
+        // check points 1-5 of ISO 18013-5: 9.3.1
+        return  verifyValidity() && verifyDocType()      &&  // 4.,5.
+                verifyCertificate(cryptoProvider, keyID) &&  // 1.
+                verifyIssuerSignedItems()                &&  // 3.
+                verifySignature(cryptoProvider, keyID)       // 2.
     }
 }
 
@@ -94,7 +96,7 @@ class MDocBuilder(val docType: String) {
     // TODO: add/generate IssuerAuth MSO object
     // TODO: add/generate DeviceSigned, DeviceAuth
 
-    fun build(deviceSigned: DeviceSigned, issuerAuth: IssuerAuth): MDoc {
+    fun build(deviceSigned: DeviceSigned, issuerAuth: COSESign1): MDoc {
         return MDoc(
             StringElement(docType),
             IssuerSigned(nameSpacesMap.mapValues { it.value.map { item -> EncodedCBORElement(item.toMapElement()) } }, issuerAuth),
@@ -107,8 +109,8 @@ class MDocBuilder(val docType: String) {
                           deviceKeyInfo: DeviceKeyInfo, deviceSigned: DeviceSigned,
                           keyID: String? = null): MDoc {
         val mso = MSO.createFor(nameSpacesMap, deviceKeyInfo, docType, validityInfo)
-        val cose_sign1 = cryptoProvider.sign1(mso.toMapElement().toEncodedCBORElement().toCBOR(), keyID)
-        return build(deviceSigned, IssuerAuth(cose_sign1))
+        val issuerAuth = cryptoProvider.sign1(mso.toMapElement().toEncodedCBORElement().toCBOR(), keyID)
+        return build(deviceSigned, issuerAuth)
     }
 
     @OptIn(ExperimentalSerializationApi::class)
@@ -116,7 +118,7 @@ class MDocBuilder(val docType: String) {
              deviceKeyInfo: DeviceKeyInfo, deviceSigned: DeviceSigned,
              keyID: String? = null): MDoc {
         val mso = MSO.createFor(nameSpacesMap, deviceKeyInfo, docType, validityInfo)
-        val cose_sign1 = cryptoProvider.sign1(mso.toMapElement().toEncodedCBORElement().toCBOR(), keyID)
-        return build(deviceSigned, IssuerAuth(cose_sign1))
+        val issuerAuth = cryptoProvider.sign1(mso.toMapElement().toEncodedCBORElement().toCBOR(), keyID)
+        return build(deviceSigned, issuerAuth)
     }
 }

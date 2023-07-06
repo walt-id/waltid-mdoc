@@ -5,7 +5,7 @@ import cbor.Cbor
 import id.walt.mdoc.dataelement.*
 import id.walt.mdoc.devicesigned.DeviceAuth
 import id.walt.mdoc.devicesigned.DeviceSigned
-import id.walt.mdoc.issuersigned.IssuerAuth
+import id.walt.mdoc.cose.COSESign1
 import id.walt.mdoc.issuersigned.IssuerSignedItem
 import id.walt.mdoc.mso.ValidityInfo
 import io.kotest.matchers.collections.shouldContainAll
@@ -49,7 +49,7 @@ class MDocTest {
                     addIssuerSignedItems(
                         "org.iso.18013.5.1", textItem, byteStringItem, intItem, floatItem, booleanItem, listItem, mapItem, nullItem, cborItem, tdateItem, tdateIntItem, tdateDblItem, fullDateStrItem, fullDateIntItem
                     ).build(DeviceSigned(EncodedCBORElement(byteArrayOf()), DeviceAuth(ListElement())),
-                            IssuerAuth(ListElement())
+                            COSESign1(listOf())
                 )
             )
         )

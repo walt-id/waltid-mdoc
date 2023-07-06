@@ -54,7 +54,7 @@ class JVMMdocTest {
       .addItemToSign("org.iso.18013.5.1", "family_name", "Foe".toDE())
       .build(mdoc.deviceSigned, mdoc.issuerSigned.issuerAuth)
     // MSO is valid, signature check should succeed
-    cryptoProvider.verify1(mdocTampered.issuerSigned.issuerAuth.cose_sign1) shouldBe true
+    cryptoProvider.verify1(mdocTampered.issuerSigned.issuerAuth) shouldBe true
     // signed item was tampered, overall verification should fail
     mdocTampered.verify(cryptoProvider) shouldBe false
   }
@@ -66,8 +66,7 @@ class JVMMdocTest {
 
     val mdoc = Cbor.decodeFromHexString<MDocResponse>(mdocExample)
     // Get the public key certificate from the COSE_Sign1 unprotected header
-    val certificateDER = ((mdoc.documents[0].issuerSigned.issuerAuth.cose_sign1.value[1] as MapElement)
-      .value[MapKey(X5_CHAIN)] as ByteStringElement).value
+    val certificateDER = mdoc.documents[0].issuerSigned.issuerAuth.x5Chain!!
     val cert = CertificateFactory.getInstance("X509").generateCertificate(ByteArrayInputStream(certificateDER))
 
     mdoc.documents[0].verifySignature(SimpleCOSECryptoProvider(AlgorithmID.ECDSA_256, cert.publicKey, null)) shouldBe true
