@@ -1,14 +1,13 @@
 package id.walt.mdoc
 
 import COSE.AlgorithmID
-import COSE.OneKey
 import cbor.Cbor
-import id.walt.mdoc.cose.X5_CHAIN
 import id.walt.mdoc.dataelement.*
 import id.walt.mdoc.devicesigned.DeviceAuth
 import id.walt.mdoc.devicesigned.DeviceSigned
 import id.walt.mdoc.mso.DeviceKeyInfo
 import id.walt.mdoc.mso.ValidityInfo
+import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.maps.shouldContainKey
 import io.kotest.matchers.shouldBe
@@ -19,19 +18,69 @@ import kotlinx.datetime.plus
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromHexString
 import kotlinx.serialization.encodeToHexString
+import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.asn1.x509.BasicConstraints
+import org.bouncycastle.asn1.x509.Extension
+import org.bouncycastle.asn1.x509.KeyUsage
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.cert.X509v3CertificateBuilder
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
+import org.junit.jupiter.api.BeforeAll
 import java.io.ByteArrayInputStream
+import java.math.BigInteger
+import java.security.KeyPair
+import java.security.KeyPairGenerator
+import java.security.SecureRandom
+import java.security.Security
 import java.security.cert.CertificateFactory
-import kotlin.test.Test
+import java.security.cert.X509Certificate
+import java.util.*
 
-class JVMMdocTest {
+class JVMMdocTest: AnnotationSpec() {
+
+  lateinit var caKeyPair: KeyPair
+  lateinit var issuerKeyPair: KeyPair
+  lateinit var caCertificate: X509Certificate
+  lateinit var issuerCertificate: X509Certificate
+
+  @BeforeAll
+  fun initializeIssuerKeys() {
+    Security.addProvider(BouncyCastleProvider())
+    val kpg = KeyPairGenerator.getInstance("EC")
+    kpg.initialize(256)
+    // create key pair for test CA
+    caKeyPair = kpg.genKeyPair()
+    // create key pair for test signer/issuer
+    issuerKeyPair = kpg.genKeyPair()
+
+    // create CA certificate
+    caCertificate = X509v3CertificateBuilder(
+      X500Name("CN=MDOC Test CSP"), BigInteger.valueOf(SecureRandom().nextLong()),
+      Date(), Date(System.currentTimeMillis() + 24L * 3600 * 1000), X500Name("CN=MDOC Test CA"),
+      SubjectPublicKeyInfo.getInstance(caKeyPair.public.encoded)
+    ) .addExtension(Extension.basicConstraints, true, BasicConstraints(false))
+      .addExtension(Extension.keyUsage, true, KeyUsage(KeyUsage.digitalSignature))
+      .build(JcaContentSignerBuilder("SHA256withECDSA").setProvider("BC").build(caKeyPair.private)).let {
+        JcaX509CertificateConverter().setProvider("BC").getCertificate(it)
+      }
+
+    // create issuer certificate
+    issuerCertificate = X509v3CertificateBuilder(X500Name("CN=MDOC Test CA"), BigInteger.valueOf(SecureRandom().nextLong()),
+      Date(), Date(System.currentTimeMillis() + 24L * 3600 * 1000), X500Name("CN=MDOC Test Issuer"),
+      SubjectPublicKeyInfo.getInstance(issuerKeyPair.public.encoded)
+    ) .addExtension(Extension.basicConstraints, true, BasicConstraints(false))
+      .addExtension(Extension.keyUsage, true, KeyUsage(KeyUsage.digitalSignature))
+      .build(JcaContentSignerBuilder("SHA256withECDSA").setProvider("BC").build(caKeyPair.private)).let {
+        JcaX509CertificateConverter().setProvider("BC").getCertificate(it)
+      }
+  }
 
   @OptIn(ExperimentalSerializationApi::class)
   @Test
   fun testSigning() {
-    val algorithmID = AlgorithmID.ECDSA_256
-    val key = OneKey.generateKey(algorithmID)
-    val cryptoProvider = SimpleCOSECryptoProvider(algorithmID, key)
-
+    val cryptoProvider = SimpleCOSECryptoProvider(AlgorithmID.ECDSA_256, issuerKeyPair.public, issuerKeyPair.private, listOf(issuerCertificate), caCertificate)
     val mdoc = MDocBuilder("org.iso.18013.5.1.mDL")
       .addItemToSign("org.iso.18013.5.1", "family_name", "Doe".toDE())
       .sign(cryptoProvider,
@@ -67,8 +116,11 @@ class JVMMdocTest {
     val mdoc = Cbor.decodeFromHexString<MDocResponse>(mdocExample)
     // Get the public key certificate from the COSE_Sign1 unprotected header
     val certificateDER = mdoc.documents[0].issuerSigned.issuerAuth.x5Chain!!
-    val cert = CertificateFactory.getInstance("X509").generateCertificate(ByteArrayInputStream(certificateDER))
+    val cert = CertificateFactory.getInstance("X509").generateCertificate(ByteArrayInputStream(certificateDER)) as X509Certificate
 
-    mdoc.documents[0].verifySignature(SimpleCOSECryptoProvider(AlgorithmID.ECDSA_256, cert.publicKey, null)) shouldBe true
+    val cryptoProvider = SimpleCOSECryptoProvider(AlgorithmID.ECDSA_256, cert.publicKey, null, listOf(cert))
+    mdoc.documents[0].verifySignature(cryptoProvider) shouldBe true
+    // CA certificate of example not trusted
+    //mdoc.documents[0].verifyCertificate(cryptoProvider) shouldBe true
   }
 }

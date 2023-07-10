@@ -26,7 +26,7 @@ data class MDoc(
     val MSO
         get() = _mso ?: issuerSigned.issuerAuth.payload?.let { data ->
             EncodedCBORElement.fromEncodedCBORElementData(data).decode<MSO>()
-        }.also { _mso = it }
+        }?.also { _mso = it }
 
     val nameSpaces
         get() = issuerSigned.nameSpaces?.keys ?: setOf()
