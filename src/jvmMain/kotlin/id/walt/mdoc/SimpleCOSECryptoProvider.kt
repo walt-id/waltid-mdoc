@@ -21,7 +21,7 @@ import javax.net.ssl.X509TrustManager
  * @param algorithmID Signing algorithm ID, e.g.: ECDSA_256
  * @param key Public/Private key pair for COSE signing and/or verification
  * @param x5Chain certificate chain, including intermediate and signing key certificates, but excluding root CA certificate!
- * @param trustedCA enforce trusted root CA, if not publicly known
+ * @param trustedCA enforce trusted root CA, if not publicly known, for certificate path validation
  */
 class SimpleCOSECryptoProvider(
   val algorithmID: AlgorithmID,
@@ -36,7 +36,7 @@ class SimpleCOSECryptoProvider(
    * @param publicKey Public key for COSE verification
    * @param privateKey Private key for COSE signing
    * @param x5Chain certificate chain, including intermediate and signing key certificates, but excluding root CA certificate!
-   * @param trustedCA enforce trusted root CA, if not publicly known
+   * @param trustedCA enforce trusted root CA, if not publicly known, for certificate path validation
    */
   constructor(algorithmID: AlgorithmID, publicKey: PublicKey?, privateKey: PrivateKey?, x5Chain: List<X509Certificate>, trustedCA: X509Certificate? = null)
       : this(algorithmID, OneKey(publicKey, privateKey), x5Chain, trustedCA)
