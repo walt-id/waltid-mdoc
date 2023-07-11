@@ -86,7 +86,7 @@ class JVMMdocTest: AnnotationSpec() {
   fun testSigning() {
     // instantiate simple cose crypto provider for issuer keys and certificates
     val cryptoProvider = SimpleCOSECryptoProvider(AlgorithmID.ECDSA_256, issuerKeyPair.public, issuerKeyPair.private, listOf(issuerCertificate), caCertificate)
-    // create device key info structure for device public key, for holder binding
+    // create device key info structure of device public key, for holder binding
     val deviceKeyInfo = DeviceKeyInfo(DataElement.fromCBOR(OneKey(deviceKeyPair.public, null).AsCBOR().EncodeToBytes()))
 
     val mdoc = MDocBuilder("org.iso.18013.5.1.mDL")
