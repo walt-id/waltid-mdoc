@@ -64,12 +64,13 @@ class MDocTest {
         val parsedDocIssuerSignedItems = mdocParsed.documents[0].getIssuerSignedItems("org.iso.18013.5.1")
         parsedDocIssuerSignedItems.size shouldBe originalIssuerSignedItems.size
 
-        parsedDocIssuerSignedItems.union(originalIssuerSignedItems).groupBy { it.elementIdentifier }.values.forEach { grp ->
-            grp.size shouldBe 2
-            grp.first().elementValue.type shouldBe grp.last().elementValue.type
-            grp.first().elementValue shouldBe grp.last().elementValue
-            if(grp.first().elementValue.type == DEType.encodedCbor) {
-                (grp.first().elementValue as EncodedCBORElement).decode() shouldBe (grp.last().elementValue as EncodedCBORElement).decode()
+        parsedDocIssuerSignedItems.forEach { parsedItem ->
+            val origItem = originalIssuerSignedItems.firstOrNull { origItem -> origItem.elementIdentifier.value == parsedItem.elementIdentifier.value }
+            origItem shouldNotBe null
+            parsedItem.elementValue.type shouldBe origItem!!.elementValue.type
+            parsedItem.elementValue shouldBe origItem.elementValue
+            if(parsedItem.elementValue.type == DEType.encodedCbor) {
+                (parsedItem.elementValue as EncodedCBORElement).decode() shouldBe (origItem.elementValue as EncodedCBORElement).decode()
             }
         }
     }

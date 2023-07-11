@@ -43,7 +43,7 @@ data class IssuerSignedItem(
 }
 
 @Serializer(forClass = IssuerSignedItem::class)
-class IssuerSignedItemSerializer: KSerializer<IssuerSignedItem> {
+object IssuerSignedItemSerializer: KSerializer<IssuerSignedItem> {
     override fun serialize(encoder: Encoder, value: IssuerSignedItem) {
         encoder.encodeSerializableValue(DataElementSerializer, value.toMapElement())
     }
