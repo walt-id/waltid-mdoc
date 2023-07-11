@@ -65,7 +65,7 @@ class MDocTest {
         parsedDocIssuerSignedItems.size shouldBe originalIssuerSignedItems.size
 
         parsedDocIssuerSignedItems.forEach { parsedItem ->
-            val origItem = originalIssuerSignedItems.firstOrNull { origItem -> origItem.elementIdentifier.value == parsedItem.elementIdentifier.value }
+            val origItem = originalIssuerSignedItems.firstOrNull { origItem -> origItem.elementIdentifier == parsedItem.elementIdentifier }
             origItem shouldNotBe null
             parsedItem.elementValue.type shouldBe origItem!!.elementValue.type
             parsedItem.elementValue shouldBe origItem.elementValue
