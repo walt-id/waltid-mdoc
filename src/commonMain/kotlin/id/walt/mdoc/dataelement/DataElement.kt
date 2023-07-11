@@ -3,9 +3,7 @@ package id.walt.mdoc.dataelement
 import cbor.Cbor
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromByteArray
+import kotlinx.serialization.*
 
 /** Data Element Type,
  * see also:
@@ -82,12 +80,18 @@ abstract class DataElement<T> (
   @OptIn(ExperimentalSerializationApi::class)
   fun toCBOR() = Cbor.encodeToByteArray(DataElementSerializer, this)
   @OptIn(ExperimentalSerializationApi::class)
+  fun toCBORHex() = Cbor.encodeToHexString(DataElementSerializer, this)
+  @OptIn(ExperimentalSerializationApi::class)
   fun toEncodedCBORElement() = EncodedCBORElement(this.toCBOR())
 
   companion object {
     @OptIn(ExperimentalSerializationApi::class)
     fun <T : AnyDataElement> fromCBOR(cbor: ByteArray): T {
       return Cbor.decodeFromByteArray(DataElementSerializer, cbor) as T
+    }
+    @OptIn(ExperimentalSerializationApi::class)
+    fun <T : AnyDataElement> fromCBORHex(cbor: String): T {
+      return Cbor.decodeFromHexString(DataElementSerializer, cbor) as T
     }
   }
 }

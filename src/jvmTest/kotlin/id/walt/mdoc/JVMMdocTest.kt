@@ -2,9 +2,9 @@ package id.walt.mdoc
 
 import COSE.AlgorithmID
 import cbor.Cbor
-import id.walt.mdoc.dataelement.*
-import id.walt.mdoc.devicesigned.DeviceAuth
-import id.walt.mdoc.devicesigned.DeviceSigned
+import id.walt.mdoc.dataelement.MapElement
+import id.walt.mdoc.dataelement.MapKey
+import id.walt.mdoc.dataelement.toDE
 import id.walt.mdoc.mso.DeviceKeyInfo
 import id.walt.mdoc.mso.ValidityInfo
 import io.kotest.core.spec.style.AnnotationSpec
@@ -85,8 +85,7 @@ class JVMMdocTest: AnnotationSpec() {
       .addItemToSign("org.iso.18013.5.1", "family_name", "Doe".toDE())
       .sign(cryptoProvider,
         ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
-        DeviceKeyInfo(MapElement(mapOf())),
-        DeviceSigned(EncodedCBORElement(MapElement(mapOf())), DeviceAuth(ListElement())),
+        DeviceKeyInfo(MapElement(mapOf()))
       )
     println("SIGNED MDOC:")
     println(Cbor.encodeToHexString(mdoc))
@@ -101,9 +100,9 @@ class JVMMdocTest: AnnotationSpec() {
 
     val mdocTampered = MDocBuilder("org.iso.18013.5.1.mDL")
       .addItemToSign("org.iso.18013.5.1", "family_name", "Foe".toDE())
-      .build(mdoc.deviceSigned, mdoc.issuerSigned.issuerAuth)
+      .build(mdoc.issuerSigned.issuerAuth)
     // MSO is valid, signature check should succeed
-    cryptoProvider.verify1(mdocTampered.issuerSigned.issuerAuth) shouldBe true
+    cryptoProvider.verify1(mdocTampered.issuerSigned.issuerAuth!!) shouldBe true
     // signed item was tampered, overall verification should fail
     mdocTampered.verify(cryptoProvider) shouldBe false
   }
@@ -115,7 +114,7 @@ class JVMMdocTest: AnnotationSpec() {
 
     val mdoc = Cbor.decodeFromHexString<MDocResponse>(mdocExample)
     // Get the public key certificate from the COSE_Sign1 unprotected header
-    val certificateDER = mdoc.documents[0].issuerSigned.issuerAuth.x5Chain!!
+    val certificateDER = mdoc.documents[0].issuerSigned.issuerAuth!!.x5Chain!!
     val cert = CertificateFactory.getInstance("X509").generateCertificate(ByteArrayInputStream(certificateDER)) as X509Certificate
 
     val cryptoProvider = SimpleCOSECryptoProvider(AlgorithmID.ECDSA_256, cert.publicKey, null, listOf(cert))

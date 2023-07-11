@@ -62,7 +62,7 @@ class SimpleCOSECryptoProvider(
     return sign1Msg.validate(key)
   }
 
-  fun findRootCA(cert: X509Certificate, enforceTrustedCA: X509Certificate?): X509Certificate? {
+  private fun findRootCA(cert: X509Certificate, enforceTrustedCA: X509Certificate?): X509Certificate? {
     val tm = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
     tm.init(null as? KeyStore)
     return tm.trustManagers.filterIsInstance<X509TrustManager>().flatMap { it.acceptedIssuers.toList() }.firstOrNull {

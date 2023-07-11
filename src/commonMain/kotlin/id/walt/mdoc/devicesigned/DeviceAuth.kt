@@ -17,6 +17,13 @@ data class DeviceAuth (
       deviceSignature?.let { put(MapKey("deviceSignature"), it) }
     })
   }
+
+  companion object {
+    fun fromMapElement(mapElement: MapElement) = DeviceAuth(
+      mapElement.value[MapKey("deviceMac")] as? ListElement,
+      mapElement.value[MapKey("deviceSignature")]
+    )
+  }
 }
 
 @Serializer(forClass = DeviceAuth::class)

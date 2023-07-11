@@ -14,6 +14,7 @@ import kotlinx.serialization.encoding.Encoder
 class COSESign1(
     val data: List<AnyDataElement>
 ) {
+    constructor(): this(listOf())
     val payload: ByteArray?
         get() {
             if (data.size != 4) throw SerializationException("Invalid COSE_Sign1 array")
@@ -34,6 +35,8 @@ class COSESign1(
 
     @OptIn(ExperimentalSerializationApi::class)
     fun toCBOR() = Cbor.encodeToByteArray(COSESign1Serializer, this)
+
+    fun toDE() = ListElement(data)
 }
 
 @OptIn(ExperimentalSerializationApi::class)
