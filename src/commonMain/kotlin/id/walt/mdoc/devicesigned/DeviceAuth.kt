@@ -1,10 +1,9 @@
-package id.walt.mdoc.model
+package id.walt.mdoc.devicesigned
 
-import id.walt.mdoc.model.dataelement.*
+import id.walt.mdoc.dataelement.*
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Serializer
-import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 @Serializable(with = DeviceAuthSerializer::class)
@@ -17,6 +16,13 @@ data class DeviceAuth (
       deviceMac?.let { put(MapKey("deviceMac"), it) }
       deviceSignature?.let { put(MapKey("deviceSignature"), it) }
     })
+  }
+
+  companion object {
+    fun fromMapElement(mapElement: MapElement) = DeviceAuth(
+      mapElement.value[MapKey("deviceMac")] as? ListElement,
+      mapElement.value[MapKey("deviceSignature")]
+    )
   }
 }
 

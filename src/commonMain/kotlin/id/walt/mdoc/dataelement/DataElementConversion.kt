@@ -1,6 +1,5 @@
-package id.walt.mdoc.model.dataelement
+package id.walt.mdoc.dataelement
 
-import id.walt.mdoc.model.MapKey
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 

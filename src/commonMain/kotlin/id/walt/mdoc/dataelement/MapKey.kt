@@ -1,4 +1,4 @@
-package id.walt.mdoc.model
+package id.walt.mdoc.dataelement
 
 import cbor.internal.decoding.peek
 import kotlinx.serialization.KSerializer

@@ -1,6 +1,7 @@
-package id.walt.mdoc.model.mso
+package id.walt.mdoc.mso
 
-import id.walt.mdoc.model.dataelement.TDateElement
+import id.walt.mdoc.dataelement.TDateElement
+import id.walt.mdoc.dataelement.toDE
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
@@ -14,4 +15,11 @@ class ValidityInfo private constructor(
 
   constructor(signed: Instant, validFrom: Instant, validUntil: Instant, expectedUpdate: Instant? = null)
     : this(TDateElement(signed), TDateElement(validFrom), TDateElement(validUntil), expectedUpdate?.let { TDateElement(it) })
+
+  fun toMapElement() = buildMap {
+    put("signed", signed)
+    put("validFrom", validFrom)
+    put("validUntil", validUntil)
+    expectedUpdate?.let { put("expectedUpdate", it) }
+  }.toDE()
 }
