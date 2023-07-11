@@ -1,8 +1,10 @@
 package id.walt.mdoc
 
 import COSE.AlgorithmID
+import COSE.OneKey
 import cbor.Cbor
-import id.walt.mdoc.dataelement.MapElement
+import com.upokecenter.cbor.CBORObject
+import id.walt.mdoc.dataelement.DataElement
 import id.walt.mdoc.dataelement.MapKey
 import id.walt.mdoc.dataelement.toDE
 import id.walt.mdoc.mso.DeviceKeyInfo
@@ -27,7 +29,6 @@ import org.bouncycastle.cert.X509v3CertificateBuilder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
-import org.junit.jupiter.api.BeforeAll
 import java.io.ByteArrayInputStream
 import java.math.BigInteger
 import java.security.KeyPair
@@ -42,6 +43,7 @@ class JVMMdocTest: AnnotationSpec() {
 
   lateinit var caKeyPair: KeyPair
   lateinit var issuerKeyPair: KeyPair
+  lateinit var deviceKeyPair: KeyPair
   lateinit var caCertificate: X509Certificate
   lateinit var issuerCertificate: X509Certificate
 
@@ -54,6 +56,8 @@ class JVMMdocTest: AnnotationSpec() {
     caKeyPair = kpg.genKeyPair()
     // create key pair for test signer/issuer
     issuerKeyPair = kpg.genKeyPair()
+    // create key pair for mdoc auth (device/holder key)
+    deviceKeyPair = kpg.genKeyPair()
 
     // create CA certificate
     caCertificate = X509v3CertificateBuilder(
@@ -80,12 +84,16 @@ class JVMMdocTest: AnnotationSpec() {
   @OptIn(ExperimentalSerializationApi::class)
   @Test
   fun testSigning() {
+    // instantiate simple cose crypto provider for issuer keys and certificates
     val cryptoProvider = SimpleCOSECryptoProvider(AlgorithmID.ECDSA_256, issuerKeyPair.public, issuerKeyPair.private, listOf(issuerCertificate), caCertificate)
+    // create device key info structure for device public key, for holder binding
+    val deviceKeyInfo = DeviceKeyInfo(DataElement.fromCBOR(OneKey(deviceKeyPair.public, null).AsCBOR().EncodeToBytes()))
+
     val mdoc = MDocBuilder("org.iso.18013.5.1.mDL")
       .addItemToSign("org.iso.18013.5.1", "family_name", "Doe".toDE())
       .sign(cryptoProvider,
         ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
-        DeviceKeyInfo(MapElement(mapOf()))
+        deviceKeyInfo
       )
     println("SIGNED MDOC:")
     println(Cbor.encodeToHexString(mdoc))
@@ -96,6 +104,7 @@ class JVMMdocTest: AnnotationSpec() {
     signedItems shouldHaveSize 1
     signedItems.first().digestID.value shouldBe 0
     mdoc.MSO!!.valueDigests.value shouldContainKey MapKey("org.iso.18013.5.1")
+    OneKey(CBORObject.DecodeFromBytes(mdoc.MSO!!.deviceKeyInfo.deviceKey.toCBOR())).AsPublicKey().encoded shouldBe deviceKeyPair.public.encoded
     mdoc.verify(cryptoProvider) shouldBe true
 
     val mdocTampered = MDocBuilder("org.iso.18013.5.1.mDL")
