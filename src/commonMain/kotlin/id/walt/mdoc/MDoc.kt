@@ -20,7 +20,8 @@ import kotlinx.serialization.encoding.Encoder
 data class MDoc(
     val docType: StringElement,
     val issuerSigned: IssuerSigned,
-    val deviceSigned: DeviceSigned?
+    val deviceSigned: DeviceSigned?,
+    val errors: MapElement? = null
 ) {
     var _mso: MSO? = null
     val MSO
@@ -83,6 +84,9 @@ data class MDoc(
             deviceSigned?.let {
                 put(MapKey("deviceSigned"), it.toMapElement())
             }
+            errors?.let {
+                put(MapKey("errors"), it)
+            }
         }
     )
 
@@ -98,7 +102,8 @@ data class MDoc(
         fun fromMapElement(mapElement: MapElement) = MDoc(
             mapElement.value[MapKey("docType")] as? StringElement ?: throw SerializationException("No docType property found on object"),
             (mapElement.value[MapKey("issuerSigned")] as? MapElement)?.let { IssuerSigned.fromMapElement(it) } ?: throw SerializationException("No issuerSigned property found on object"),
-            (mapElement.value[MapKey("deviceSigned")] as? MapElement)?.let { DeviceSigned.fromMapElement(it) }
+            (mapElement.value[MapKey("deviceSigned")] as? MapElement)?.let { DeviceSigned.fromMapElement(it) },
+            mapElement.value[MapKey("errors")] as? MapElement
         )
     }
 }

@@ -1,6 +1,6 @@
-package id.walt.mdoc
+package id.walt.mdoc.dataretrieval
 
-enum class MDocResponseStatus(val status: UInt) {
+enum class DeviceResponseStatus(val status: UInt) {
   OK(0u),
   GENERAL_ERROR(10u),
   CBOR_DECODING_ERROR(11u),
