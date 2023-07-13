@@ -3,10 +3,7 @@ package id.walt.mdoc
 import COSE.*
 import cbor.Cbor
 import com.upokecenter.cbor.CBORObject
-import id.walt.mdoc.cose.COSECryptoProvider
-import id.walt.mdoc.cose.COSESign1
-import id.walt.mdoc.cose.COSESign1Serializer
-import id.walt.mdoc.cose.X5_CHAIN
+import id.walt.mdoc.cose.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import java.io.ByteArrayInputStream
 import java.security.KeyStore
