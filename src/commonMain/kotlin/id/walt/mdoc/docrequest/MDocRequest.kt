@@ -24,25 +24,11 @@ data class MDocRequest internal constructor(
       Pair(it.key.str, (it.value as BooleanElement).value)
     }.toMap()
   }
-}
 
-class MDocRequestBuilder(val docType: String, val readerAuth: COSESign1? = null) {
-  val nameSpaces = mutableMapOf<String, MutableMap<String, Boolean>>()
-
-  fun addDataElementRequest(nameSpace: String, elementIdentifier: String, intentToRetain: Boolean): MDocRequestBuilder {
-    nameSpaces.getOrPut(nameSpace) { mutableMapOf() }.put(elementIdentifier, intentToRetain)
-    return this
-  }
-
-  fun build() = MDocRequest(
-    EncodedCBORElement(ItemsRequest(
-      docType = docType.toDE(),
-      nameSpaces = nameSpaces.map { ns ->
-        Pair(MapKey(ns.key), ns.value.map { item ->
-          Pair(MapKey(item.key), BooleanElement(item.value))
-        }.toMap().toDE())
-      }.toMap().toDE()
-    ).toMapElement()),
-    readerAuth
-  )
+  fun toMapElement() = buildMap {
+    put(MapKey("itemsRequest"), itemsRequest)
+    readerAuth?.let {
+      put(MapKey("readerAuth"), it.toDE())
+    }
+  }.toDE()
 }

@@ -8,6 +8,7 @@ import id.walt.mdoc.dataelement.DataElement
 import id.walt.mdoc.dataelement.MapKey
 import id.walt.mdoc.dataelement.toDE
 import id.walt.mdoc.dataretrieval.DeviceResponse
+import id.walt.mdoc.doc.MDocBuilder
 import id.walt.mdoc.mso.DeviceKeyInfo
 import id.walt.mdoc.mso.ValidityInfo
 import io.kotest.core.spec.style.AnnotationSpec

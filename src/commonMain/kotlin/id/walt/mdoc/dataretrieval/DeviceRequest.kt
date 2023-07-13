@@ -1,20 +1,24 @@
 package id.walt.mdoc.dataretrieval
 
 import cbor.Cbor
-import id.walt.mdoc.dataelement.StringElement
-import id.walt.mdoc.dataelement.toDE
+import id.walt.mdoc.dataelement.*
 import id.walt.mdoc.docrequest.MDocRequest
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromByteArray
-import kotlinx.serialization.decodeFromHexString
+import kotlinx.serialization.*
 
 @Serializable
 class DeviceRequest(
   val docRequests: List<MDocRequest>,
   val version: StringElement = "1.0".toDE()
 ) {
+  fun toMapElement() = mapOf(
+    MapKey("version") to version,
+    MapKey("docRequests") to ListElement(docRequests.map { it.toMapElement() })
+  ).toDE()
 
+  @OptIn(ExperimentalSerializationApi::class)
+  fun toCBOR() = toMapElement().toCBOR()
+  @OptIn(ExperimentalSerializationApi::class)
+  fun toCBORHex() = toMapElement().toCBORHex()
   companion object {
     @OptIn(ExperimentalSerializationApi::class)
     fun fromCBOR(cbor: ByteArray) = Cbor.decodeFromByteArray<DeviceRequest>(cbor)

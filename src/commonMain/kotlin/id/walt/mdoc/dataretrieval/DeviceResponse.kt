@@ -1,8 +1,9 @@
 package id.walt.mdoc.dataretrieval
 
 import cbor.Cbor
-import id.walt.mdoc.MDoc
+import id.walt.mdoc.doc.MDoc
 import id.walt.mdoc.dataelement.*
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromByteArray
 import kotlinx.serialization.decodeFromHexString
@@ -29,7 +30,9 @@ class DeviceResponse(
     fun toCBORHex() = toMapElement().toCBORHex()
 
     companion object {
+        @OptIn(ExperimentalSerializationApi::class)
         fun fromCBOR(cbor: ByteArray) = Cbor.decodeFromByteArray<DeviceResponse>(cbor)
+        @OptIn(ExperimentalSerializationApi::class)
         fun fromCBORHex(cbor: String) = Cbor.decodeFromHexString<DeviceResponse>(cbor)
     }
 }
