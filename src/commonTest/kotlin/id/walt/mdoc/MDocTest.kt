@@ -2,6 +2,7 @@ package id.walt.mdoc
 
 import kotlinx.serialization.*
 import cbor.Cbor
+import id.walt.mdoc.cose.COSEMac0
 import id.walt.mdoc.dataelement.*
 import id.walt.mdoc.devicesigned.DeviceAuth
 import id.walt.mdoc.cose.COSESign1
@@ -141,7 +142,7 @@ class MDocTest {
 
     @Test
     fun testDeviceAuth() {
-        val deviceAuth = DeviceAuth(deviceMac = ListElement(listOf(
+        val deviceAuth = DeviceAuth(deviceMac = COSEMac0(listOf(
             ByteStringElement(byteArrayOf(0xA1.toByte(), 0x01, 0x05)),
             MapElement(mapOf()),
             NullElement(),
