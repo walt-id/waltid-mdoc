@@ -72,27 +72,64 @@ data class MDoc(
         } ?: throw Exception("No issuer auth found on document")
     }
 
-    fun verify(cryptoProvider: COSECryptoProvider, keyID: String? = null): Boolean {
+    fun verifyDeviceSignature(deviceAuthentication: DeviceAuthentication, cryptoProvider: COSECryptoProvider, keyID: String?): Boolean {
+        val deviceSignature = deviceSigned?.deviceAuth?.deviceSignature ?: throw Exception("No device signature found on MDoc")
+        return cryptoProvider.verify1(
+            deviceSignature.attachPayload(getDeviceSignedPayload(deviceAuthentication)),
+            keyID
+        )
+    }
+
+    fun verifyDeviceMAC(deviceAuthentication: DeviceAuthentication, ephemeralMACKey: ByteArray): Boolean {
+        val deviceMac = deviceSigned?.deviceAuth?.deviceMac ?: throw Exception("No device MAC found on MDoc")
+        return deviceMac.attachPayload(getDeviceSignedPayload(deviceAuthentication)).verify(ephemeralMACKey)
+    }
+
+    private fun verifyDeviceSigOrMac(verificationParams: MDocVerificationParams, cryptoProvider: COSECryptoProvider): Boolean {
+        val mdocDeviceAuth = deviceSigned?.deviceAuth ?: throw Exception("MDoc has no device authentication")
+        val deviceAuthenticationPayload = verificationParams.deviceAuthentication ?: throw Exception("No device authentication payload given, for check of device signature or MAC")
+        return if(mdocDeviceAuth.deviceMac != null) {
+            verifyDeviceMAC(
+                deviceAuthenticationPayload,
+                verificationParams.ephemeralMacKey ?: throw Exception("No ephemeral MAC key given, for check of device MAC")
+            )
+        } else if(mdocDeviceAuth.deviceSignature != null) {
+            verifyDeviceSignature(
+                deviceAuthenticationPayload,
+                cryptoProvider, verificationParams.deviceKeyID
+            )
+        } else throw Exception("MDoc device auth has neither MAC nor signature")
+    }
+
+    fun verify(verificationParams: MDocVerificationParams, cryptoProvider: COSECryptoProvider): Boolean {
         // check points 1-5 of ISO 18013-5: 9.3.1
-        return  verifyValidity() && verifyDocType()      &&  // 4.,5.
-                verifyCertificate(cryptoProvider, keyID) &&  // 1.
-                verifyIssuerSignedItems()                &&  // 3.
-                verifySignature(cryptoProvider, keyID)       // 2.
+        return VerificationType.all.all { type ->
+            !verificationParams.verificationTypes.has(type) || when(type) {
+                VerificationType.VALIDITY -> verifyValidity()
+                VerificationType.DOC_TYPE -> verifyDocType()
+                VerificationType.CERTIFICATE_CHAIN -> verifyCertificate(cryptoProvider, verificationParams.issuerKeyID)
+                VerificationType.ITEMS_TAMPER_CHECK -> verifyIssuerSignedItems()
+                VerificationType.ISSUER_SIGNATURE -> verifySignature(cryptoProvider, verificationParams.issuerKeyID)
+                VerificationType.DEVICE_SIGNATURE -> verifyDeviceSigOrMac(verificationParams, cryptoProvider)
+            }
+        }
     }
 
     private fun selectDisclosures(mDocRequest: MDocRequest): IssuerSigned {
         TODO()
     }
 
-    fun presentWithDeviceSignature(cryptoProvider: COSECryptoProvider, mDocRequest: MDocRequest, deviceAuthentication: DeviceAuthentication): MDoc {
+    fun presentWithDeviceSignature(mDocRequest: MDocRequest, deviceAuthentication: DeviceAuthentication, cryptoProvider: COSECryptoProvider, keyID: String? = null): MDoc {
         TODO()
     }
 
+    private fun getDeviceSignedPayload(deviceAuthentication: DeviceAuthentication) = EncodedCBORElement(deviceAuthentication.toDE()).toCBOR()
+
     fun presentWithDeviceMAC(mDocRequest: MDocRequest, deviceAuthentication: DeviceAuthentication, ephemeralMACKey: ByteArray): MDoc {
-        val coseMac0 = COSEMac0.createForMDocAuth(EncodedCBORElement(deviceAuthentication.toDE()).toCBOR(), ephemeralMACKey).detachPayload()
+        val coseMac0 = COSEMac0.createWithHMAC256(getDeviceSignedPayload(deviceAuthentication), ephemeralMACKey).detachPayload()
         // TODO: selective disclosure according to mDocRequest
         val selectiveDisclosures = selectDisclosures(mDocRequest)
-        return MDoc(docType, issuerSigned, DeviceSigned(EncodedCBORElement(MapElement(mapOf())), DeviceAuth(coseMac0)))
+        return MDoc(docType, selectiveDisclosures, DeviceSigned(EncodedCBORElement(MapElement(mapOf())), DeviceAuth(coseMac0)))
 
     }
 

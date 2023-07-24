@@ -15,21 +15,40 @@ class COSEMac0(
 ): COSESimpleBase<COSEMac0>() {
   constructor(): this(listOf())
 
-  override fun detachPayload() = COSEMac0(getDetachedPayloadData())
+  override fun detachPayload() = COSEMac0(replacePayload(NullElement()))
+  override fun attachPayload(payload: ByteArray) = COSEMac0(replacePayload(ByteStringElement(payload)))
+
+  fun verify(sharedSecret: ByteArray, externalData: ByteArray = byteArrayOf()): Boolean {
+    val mac0Content = createMacStructure(protectedHeader, payload ?: throw Exception("No payload given"), externalData).toCBOR()
+    val tag = when(algorithm) {
+      HMAC256 -> HMAC.hmacSHA256(sharedSecret, mac0Content).bytes
+      else -> throw Exception("Algorithm $algorithm currently not supported, only supported algorithm is HMAC256 ($HMAC256)")
+    }
+    return signatureOrTag.contentEquals(tag)
+  }
+
   companion object {
-    fun createForMDocAuth(payload: ByteArray, sharedSecret: ByteArray): COSEMac0 {
-      val identifier = StringElement("MAC0")
-      val protectedHeaderData = ByteStringElement(
-        mapOf(
+    private fun createMacStructure(protectedHeaderData: ByteArray, payload: ByteArray, externalData: ByteArray): ListElement {
+      return ListElement(listOf(
+        StringElement("MAC0"),
+        ByteStringElement(protectedHeaderData),
+        ByteStringElement(externalData),
+        ByteStringElement(payload)
+      ))
+    }
+    fun createWithHMAC256(payload: ByteArray, sharedSecret: ByteArray, externalData: ByteArray = byteArrayOf()): COSEMac0 {
+      val protectedHeaderData = mapOf(
           MapKey(ALG_LABEL) to NumberElement(HMAC256)
-        ).toDE().toCBOR()
-      )
-      val externalData = ByteStringElement(byteArrayOf())
-      val mac0Content = ListElement(listOf(identifier, protectedHeaderData, externalData, ByteStringElement(payload))).toCBOR()
+      ).toDE().toCBOR()
+
+      val mac0Content = createMacStructure(protectedHeaderData, payload, externalData).toCBOR()
       val tag = HMAC.hmacSHA256(sharedSecret, mac0Content).bytes
       return COSEMac0(listOf(
-        protectedHeaderData, MapElement(mapOf()), NullElement(), ByteStringElement(tag))
-      )
+        EncodedCBORElement(protectedHeaderData),
+        MapElement(mapOf()),
+        ByteStringElement(payload),
+        ByteStringElement(tag)
+      ))
     }
   }
 }

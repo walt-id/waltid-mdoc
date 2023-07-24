@@ -16,7 +16,8 @@ class COSESign1(
 ): COSESimpleBase<COSESign1>() {
     constructor(): this(listOf())
 
-    override fun detachPayload() = COSESign1(getDetachedPayloadData())
+    override fun detachPayload() = COSESign1(replacePayload(NullElement()))
+    override fun attachPayload(payload: ByteArray) = COSESign1(replacePayload(ByteStringElement(payload)))
 }
 
 @OptIn(ExperimentalSerializationApi::class)

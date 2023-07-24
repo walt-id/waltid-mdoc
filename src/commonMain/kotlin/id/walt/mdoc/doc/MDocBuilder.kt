@@ -45,16 +45,16 @@ class MDocBuilder(val docType: String) {
   }
 
   @OptIn(ExperimentalSerializationApi::class)
-  suspend fun signAsync(cryptoProvider: AsyncCOSECryptoProvider, validityInfo: ValidityInfo,
-                        deviceKeyInfo: DeviceKeyInfo, keyID: String? = null): MDoc {
+  suspend fun signAsync(validityInfo: ValidityInfo,
+                        deviceKeyInfo: DeviceKeyInfo, cryptoProvider: AsyncCOSECryptoProvider, keyID: String? = null): MDoc {
     val mso = MSO.createFor(nameSpacesMap, deviceKeyInfo, docType, validityInfo)
     val issuerAuth = cryptoProvider.sign1(mso.toMapElement().toEncodedCBORElement().toCBOR(), keyID)
     return build(issuerAuth)
   }
 
   @OptIn(ExperimentalSerializationApi::class)
-  fun sign(cryptoProvider: COSECryptoProvider, validityInfo: ValidityInfo,
-           deviceKeyInfo: DeviceKeyInfo, keyID: String? = null): MDoc {
+  fun sign(validityInfo: ValidityInfo,
+           deviceKeyInfo: DeviceKeyInfo, cryptoProvider: COSECryptoProvider, keyID: String? = null): MDoc {
     val mso = MSO.createFor(nameSpacesMap, deviceKeyInfo, docType, validityInfo)
     val issuerAuth = cryptoProvider.sign1(mso.toMapElement().toEncodedCBORElement().toCBOR(), keyID)
     return build(issuerAuth)
