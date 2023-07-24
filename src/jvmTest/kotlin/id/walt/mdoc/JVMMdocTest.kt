@@ -9,6 +9,9 @@ import id.walt.mdoc.dataelement.MapKey
 import id.walt.mdoc.dataelement.toDE
 import id.walt.mdoc.dataretrieval.DeviceResponse
 import id.walt.mdoc.doc.MDocBuilder
+import id.walt.mdoc.doc.MDocVerificationParams
+import id.walt.mdoc.doc.VerificationType
+import id.walt.mdoc.doc.VerificationTypes
 import id.walt.mdoc.mso.DeviceKeyInfo
 import id.walt.mdoc.mso.ValidityInfo
 import io.kotest.core.spec.style.AnnotationSpec
@@ -93,9 +96,8 @@ class JVMMdocTest: AnnotationSpec() {
 
     val mdoc = MDocBuilder("org.iso.18013.5.1.mDL")
       .addItemToSign("org.iso.18013.5.1", "family_name", "Doe".toDE())
-      .sign(cryptoProvider,
-        ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
-        deviceKeyInfo
+      .sign(ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
+        deviceKeyInfo, cryptoProvider
       )
     println("SIGNED MDOC:")
     println(Cbor.encodeToHexString(mdoc))
@@ -107,7 +109,7 @@ class JVMMdocTest: AnnotationSpec() {
     signedItems.first().digestID.value shouldBe 0
     mdoc.MSO!!.valueDigests.value shouldContainKey MapKey("org.iso.18013.5.1")
     OneKey(CBORObject.DecodeFromBytes(mdoc.MSO!!.deviceKeyInfo.deviceKey.toCBOR())).AsPublicKey().encoded shouldBe deviceKeyPair.public.encoded
-    mdoc.verify(cryptoProvider) shouldBe true
+    mdoc.verify(MDocVerificationParams(VerificationType.forIssuance), cryptoProvider) shouldBe true
 
     val mdocTampered = MDocBuilder("org.iso.18013.5.1.mDL")
       .addItemToSign("org.iso.18013.5.1", "family_name", "Foe".toDE())
@@ -115,7 +117,7 @@ class JVMMdocTest: AnnotationSpec() {
     // MSO is valid, signature check should succeed
     cryptoProvider.verify1(mdocTampered.issuerSigned.issuerAuth!!) shouldBe true
     // signed item was tampered, overall verification should fail
-    mdocTampered.verify(cryptoProvider) shouldBe false
+    mdocTampered.verify(MDocVerificationParams(VerificationType.forIssuance), cryptoProvider) shouldBe false
   }
 
   @Test
