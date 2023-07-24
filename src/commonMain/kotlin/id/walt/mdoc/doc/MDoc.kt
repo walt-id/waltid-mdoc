@@ -128,7 +128,7 @@ data class MDoc(
     fun presentWithDeviceMAC(mDocRequest: MDocRequest, deviceAuthentication: DeviceAuthentication, ephemeralMACKey: ByteArray): MDoc {
         val coseMac0 = COSEMac0.createWithHMAC256(getDeviceSignedPayload(deviceAuthentication), ephemeralMACKey).detachPayload()
         // TODO: selective disclosure according to mDocRequest
-        val selectiveDisclosures = selectDisclosures(mDocRequest)
+        val selectiveDisclosures = issuerSigned // selectDisclosures(mDocRequest)
         return MDoc(docType, selectiveDisclosures, DeviceSigned(EncodedCBORElement(MapElement(mapOf())), DeviceAuth(coseMac0)))
 
     }

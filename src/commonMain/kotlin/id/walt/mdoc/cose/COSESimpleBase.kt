@@ -28,7 +28,7 @@ abstract class COSESimpleBase<T: COSESimpleBase<T>>() {
   val protectedHeader: ByteArray
     get() {
       if (data.size != 4) throw SerializationException("Invalid COSE_Sign1/COSE_Mac0 array")
-      return (data[0] as EncodedCBORElement).value
+      return (data[0] as ByteStringElement).value
     }
 
   val algorithm: Int

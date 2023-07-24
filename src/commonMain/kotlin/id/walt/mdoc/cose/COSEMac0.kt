@@ -44,7 +44,7 @@ class COSEMac0(
       val mac0Content = createMacStructure(protectedHeaderData, payload, externalData).toCBOR()
       val tag = HMAC.hmacSHA256(sharedSecret, mac0Content).bytes
       return COSEMac0(listOf(
-        EncodedCBORElement(protectedHeaderData),
+        ByteStringElement(protectedHeaderData),
         MapElement(mapOf()),
         ByteStringElement(payload),
         ByteStringElement(tag)
