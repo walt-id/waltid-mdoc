@@ -13,7 +13,6 @@ import id.walt.mdoc.docrequest.MDocRequest
 import id.walt.mdoc.issuersigned.IssuerSigned
 import id.walt.mdoc.issuersigned.IssuerSignedItem
 import id.walt.mdoc.mdocauth.DeviceAuthentication
-import id.walt.mdoc.mdocauth.DeviceAuthenticationMode
 import id.walt.mdoc.mso.MSO
 import korlibs.crypto.HMAC
 import kotlinx.datetime.Clock
@@ -116,7 +115,15 @@ data class MDoc(
     }
 
     private fun selectDisclosures(mDocRequest: MDocRequest): IssuerSigned {
-        TODO()
+        return IssuerSigned(
+            issuerSigned.nameSpaces?.mapValues { entry ->
+                val requestedItems = mDocRequest.getRequestedItemsFor(entry.key)
+                entry.value.filter { encodedItem ->
+                    requestedItems.containsKey(encodedItem.decode<IssuerSignedItem>().elementIdentifier.value)
+                }
+            },
+            issuerSigned.issuerAuth
+        )
     }
 
     fun presentWithDeviceSignature(mDocRequest: MDocRequest, deviceAuthentication: DeviceAuthentication, cryptoProvider: COSECryptoProvider, keyID: String? = null): MDoc {
@@ -127,10 +134,10 @@ data class MDoc(
 
     fun presentWithDeviceMAC(mDocRequest: MDocRequest, deviceAuthentication: DeviceAuthentication, ephemeralMACKey: ByteArray): MDoc {
         val coseMac0 = COSEMac0.createWithHMAC256(getDeviceSignedPayload(deviceAuthentication), ephemeralMACKey).detachPayload()
-        // TODO: selective disclosure according to mDocRequest
-        val selectiveDisclosures = issuerSigned // selectDisclosures(mDocRequest)
-        return MDoc(docType, selectiveDisclosures, DeviceSigned(EncodedCBORElement(MapElement(mapOf())), DeviceAuth(coseMac0)))
-
+        return MDoc(
+            docType,
+            selectDisclosures(mDocRequest),
+            DeviceSigned(EncodedCBORElement(MapElement(mapOf())), DeviceAuth(coseMac0)))
     }
 
     fun toMapElement() = MapElement(
