@@ -48,6 +48,9 @@ import java.util.*
 
 class JVMMdocTest: AnnotationSpec() {
 
+  val ISSUER_KEY_ID = "ISSUER_KEY"
+  val DEVICE_KEY_ID = "DEVICE_KEY"
+  val READER_KEY_ID = "READER_KEY"
   lateinit var caKeyPair: KeyPair
   lateinit var issuerKeyPair: KeyPair
   lateinit var deviceKeyPair: KeyPair
@@ -92,14 +95,19 @@ class JVMMdocTest: AnnotationSpec() {
   @Test
   fun testSigning() {
     // instantiate simple cose crypto provider for issuer keys and certificates
-    val cryptoProvider = SimpleCOSECryptoProvider(AlgorithmID.ECDSA_256, issuerKeyPair.public, issuerKeyPair.private, listOf(issuerCertificate), caCertificate)
+    val cryptoProvider = SimpleCOSECryptoProvider(
+      listOf(
+        COSECryptoProviderKeyInfo(ISSUER_KEY_ID, AlgorithmID.ECDSA_256, issuerKeyPair.public, issuerKeyPair.private, listOf(issuerCertificate), listOf(caCertificate)),
+        COSECryptoProviderKeyInfo(DEVICE_KEY_ID, AlgorithmID.ECDSA_256, deviceKeyPair.public, deviceKeyPair.private)
+      )
+    )
     // create device key info structure of device public key, for holder binding
     val deviceKeyInfo = DeviceKeyInfo(DataElement.fromCBOR(OneKey(deviceKeyPair.public, null).AsCBOR().EncodeToBytes()))
 
     val mdoc = MDocBuilder("org.iso.18013.5.1.mDL")
       .addItemToSign("org.iso.18013.5.1", "family_name", "Doe".toDE())
       .sign(ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
-        deviceKeyInfo, cryptoProvider
+        deviceKeyInfo, cryptoProvider, ISSUER_KEY_ID
       )
     println("SIGNED MDOC:")
     println(Cbor.encodeToHexString(mdoc))
@@ -111,15 +119,37 @@ class JVMMdocTest: AnnotationSpec() {
     signedItems.first().digestID.value shouldBe 0
     mdoc.MSO!!.valueDigests.value shouldContainKey MapKey("org.iso.18013.5.1")
     OneKey(CBORObject.DecodeFromBytes(mdoc.MSO!!.deviceKeyInfo.deviceKey.toCBOR())).AsPublicKey().encoded shouldBe deviceKeyPair.public.encoded
-    mdoc.verify(MDocVerificationParams(VerificationType.forIssuance), cryptoProvider) shouldBe true
+    mdoc.verify(MDocVerificationParams(VerificationType.forIssuance, ISSUER_KEY_ID), cryptoProvider) shouldBe true
 
     val mdocTampered = MDocBuilder("org.iso.18013.5.1.mDL")
       .addItemToSign("org.iso.18013.5.1", "family_name", "Foe".toDE())
       .build(mdoc.issuerSigned.issuerAuth)
     // MSO is valid, signature check should succeed
-    cryptoProvider.verify1(mdocTampered.issuerSigned.issuerAuth!!) shouldBe true
+    cryptoProvider.verify1(mdocTampered.issuerSigned.issuerAuth!!, ISSUER_KEY_ID) shouldBe true
     // signed item was tampered, overall verification should fail
-    mdocTampered.verify(MDocVerificationParams(VerificationType.forIssuance), cryptoProvider) shouldBe false
+    mdocTampered.verify(MDocVerificationParams(VerificationType.forIssuance, ISSUER_KEY_ID), cryptoProvider) shouldBe false
+
+    // test presentation with device signature
+    val ephemeralReaderKey = COSE.OneKey.generateKey(AlgorithmID.ECDSA_256)
+    val deviceAuthentication = DeviceAuthentication(sessionTranscript = ListElement(listOf(
+      NullElement(),
+      EncodedCBORElement(ephemeralReaderKey.AsCBOR().EncodeToBytes()),
+      NullElement()
+    )), mdoc.docType.value, EncodedCBORElement(MapElement(mapOf())))
+
+    val mdocRequest = MDocRequestBuilder(mdoc.docType.value).addDataElementRequest("org.iso.18013.5.1", "family_name", true).build()
+
+    val presentedDoc = mdoc.presentWithDeviceSignature(mdocRequest, deviceAuthentication, cryptoProvider, DEVICE_KEY_ID)
+
+    presentedDoc.verify(
+      MDocVerificationParams(
+        VerificationType.forPresentation,
+        ISSUER_KEY_ID, DEVICE_KEY_ID,
+        deviceAuthentication = deviceAuthentication,
+        mDocRequest =  mdocRequest
+      ),
+      cryptoProvider
+    ) shouldBe true
   }
 
   @Test
@@ -132,8 +162,10 @@ class JVMMdocTest: AnnotationSpec() {
     val certificateDER = mdoc.documents[0].issuerSigned.issuerAuth!!.x5Chain!!
     val cert = CertificateFactory.getInstance("X509").generateCertificate(ByteArrayInputStream(certificateDER)) as X509Certificate
 
-    val cryptoProvider = SimpleCOSECryptoProvider(AlgorithmID.ECDSA_256, cert.publicKey, null, listOf(cert))
-    mdoc.documents[0].verifySignature(cryptoProvider) shouldBe true
+    val cryptoProvider = SimpleCOSECryptoProvider(listOf(
+      COSECryptoProviderKeyInfo(ISSUER_KEY_ID, AlgorithmID.ECDSA_256, cert.publicKey, null, listOf(cert))
+    ))
+    mdoc.documents[0].verifySignature(cryptoProvider, ISSUER_KEY_ID) shouldBe true
     // CA certificate of example not trusted
     //mdoc.documents[0].verifyCertificate(cryptoProvider) shouldBe true
   }
@@ -150,12 +182,14 @@ class JVMMdocTest: AnnotationSpec() {
 
     val certificateDER = devRequest.docRequests[0].readerAuth!!.x5Chain!!
     val cert = CertificateFactory.getInstance("X509").generateCertificate(ByteArrayInputStream(certificateDER)) as X509Certificate
-    val cryptoProvider = SimpleCOSECryptoProvider(AlgorithmID.ECDSA_256, cert.publicKey, null, listOf(cert))
+    val cryptoProvider = SimpleCOSECryptoProvider(listOf(
+      COSECryptoProviderKeyInfo(READER_KEY_ID, AlgorithmID.ECDSA_256, cert.publicKey, null, listOf(cert))
+    ))
 
     // test with all fields allowed to retain
     devRequest.docRequests[0].verify(
       MDocRequestVerificationParams(
-      true, null, allowedToRetain = mapOf(
+      true, READER_KEY_ID, allowedToRetain = mapOf(
           "org.iso.18013.5.1" to setOf("family_name", "document_number", "driving_privileges", "issue_date", "expiry_date")
       ), readerAuthentication
     ), cryptoProvider) shouldBe true
@@ -163,7 +197,7 @@ class JVMMdocTest: AnnotationSpec() {
     // test with restricted fields allowed to retain
     devRequest.docRequests[0].verify(
       MDocRequestVerificationParams(
-        true, null, allowedToRetain = mapOf(
+        true, READER_KEY_ID, allowedToRetain = mapOf(
           "org.iso.18013.5.1" to setOf("family_name")
         ), readerAuthentication
       ), cryptoProvider) shouldBe false
@@ -196,10 +230,13 @@ class JVMMdocTest: AnnotationSpec() {
     // validate issuer signature, tamper check and device mac
     val certificateDER = mdoc.issuerSigned.issuerAuth!!.x5Chain!!
     val cert = CertificateFactory.getInstance("X509").generateCertificate(ByteArrayInputStream(certificateDER)) as X509Certificate
-    val cryptoProvider = SimpleCOSECryptoProvider(AlgorithmID.ECDSA_256, cert.publicKey, null, listOf(cert))
+    val cryptoProvider = SimpleCOSECryptoProvider(listOf(
+      COSECryptoProviderKeyInfo(ISSUER_KEY_ID, AlgorithmID.ECDSA_256, cert.publicKey, null, listOf(cert))
+    ))
 
     presentedMdoc.verify(MDocVerificationParams(
       VerificationType.DOC_TYPE and VerificationType.DEVICE_SIGNATURE and VerificationType.ISSUER_SIGNATURE and VerificationType.ITEMS_TAMPER_CHECK,
+      ISSUER_KEY_ID,
       ephemeralMacKey = ephemeralMacKey,
       deviceAuthentication = deviceAuthentication,
       mDocRequest = mdocRequest

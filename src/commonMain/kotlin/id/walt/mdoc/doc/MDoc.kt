@@ -126,11 +126,16 @@ data class MDoc(
         )
     }
 
-    fun presentWithDeviceSignature(mDocRequest: MDocRequest, deviceAuthentication: DeviceAuthentication, cryptoProvider: COSECryptoProvider, keyID: String? = null): MDoc {
-        TODO()
-    }
-
     private fun getDeviceSignedPayload(deviceAuthentication: DeviceAuthentication) = EncodedCBORElement(deviceAuthentication.toDE()).toCBOR()
+
+    fun presentWithDeviceSignature(mDocRequest: MDocRequest, deviceAuthentication: DeviceAuthentication, cryptoProvider: COSECryptoProvider, keyID: String? = null): MDoc {
+        val coseSign1 = cryptoProvider.sign1(getDeviceSignedPayload(deviceAuthentication), keyID).detachPayload()
+        return MDoc(
+            docType,
+            selectDisclosures(mDocRequest),
+            DeviceSigned(EncodedCBORElement(MapElement(mapOf())), DeviceAuth(deviceSignature = coseSign1))
+        )
+    }
 
     fun presentWithDeviceMAC(mDocRequest: MDocRequest, deviceAuthentication: DeviceAuthentication, ephemeralMACKey: ByteArray): MDoc {
         val coseMac0 = COSEMac0.createWithHMAC256(getDeviceSignedPayload(deviceAuthentication), ephemeralMACKey).detachPayload()
