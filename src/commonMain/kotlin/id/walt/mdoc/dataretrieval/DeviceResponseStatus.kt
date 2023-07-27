@@ -1,5 +1,8 @@
 package id.walt.mdoc.dataretrieval
 
+/**
+ * Device response status
+ */
 enum class DeviceResponseStatus(val status: UInt) {
   OK(0u),
   GENERAL_ERROR(10u),

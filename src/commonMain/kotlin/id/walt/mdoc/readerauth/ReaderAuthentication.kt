@@ -24,15 +24,21 @@ class ReaderAuthentication internal constructor(
     )
   )
 
+  /**
+   * Serialize to CBOR data
+   */
   @OptIn(ExperimentalSerializationApi::class)
   fun toCBOR() = Cbor.encodeToByteArray(ReaderAuthenticationSerializer, this)
 
+  /**
+   * Convert to CBOR data element
+   */
   fun toDE() = ListElement(data)
 }
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializer(forClass = ReaderAuthentication::class)
-object ReaderAuthenticationSerializer: KSerializer<ReaderAuthentication> {
+internal object ReaderAuthenticationSerializer: KSerializer<ReaderAuthentication> {
   override fun deserialize(decoder: Decoder): ReaderAuthentication {
     return ReaderAuthentication(
       decoder.decodeSerializableValue(ListSerializer(DataElementSerializer))

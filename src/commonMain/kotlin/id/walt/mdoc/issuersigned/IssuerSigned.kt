@@ -9,6 +9,9 @@ data class IssuerSigned(
     val nameSpaces: Map<String, List<EncodedCBORElement>>?,
     val issuerAuth: COSESign1?
 ) {
+    /**
+     * Convert to CBOR map element
+     */
     fun toMapElement() = MapElement(
         buildMap {
             nameSpaces?.let {
@@ -23,6 +26,9 @@ data class IssuerSigned(
     )
 
     companion object {
+        /**
+         * Convert from CBOR map element
+         */
         fun fromMapElement(mapElement: MapElement) = IssuerSigned(
             mapElement.value[MapKey("nameSpaces")]?.let {
                 (it as MapElement).value.map { entry -> Pair(

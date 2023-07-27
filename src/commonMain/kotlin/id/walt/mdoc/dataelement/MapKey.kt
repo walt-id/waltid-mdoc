@@ -12,6 +12,10 @@ enum class MapKeyType {
     string, int
 }
 
+/**
+ * Map key for CBOR map elements
+ * Supports int or string keys
+ */
 @Serializable(with = MapKeySerializer::class)
 data class MapKey private constructor (private val key: Any, val type: MapKeyType) {
     constructor(key: String) : this(key, MapKeyType.string)
@@ -34,7 +38,7 @@ data class MapKey private constructor (private val key: Any, val type: MapKeyTyp
 }
 
 @Serializer(forClass = MapKey::class)
-object MapKeySerializer: KSerializer<MapKey> {
+internal object MapKeySerializer: KSerializer<MapKey> {
 
     override fun deserialize(decoder: Decoder): MapKey {
         val curHead = decoder.peek()

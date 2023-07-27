@@ -10,6 +10,9 @@ class DeviceKeyInfo (
   val keyAuthorizations: MapElement? = null,
   val keyInfo: MapElement? = null
 ) {
+  /**
+   * Convert to CBOR map element
+   */
   fun toMapElement() = buildMap {
     put("deviceKey", deviceKey)
     keyAuthorizations?.let { put("keyAuthorizations", it) }

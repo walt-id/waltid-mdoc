@@ -11,6 +11,9 @@ data class ItemsRequest internal constructor (
   val docType: StringElement,
   val nameSpaces: MapElement
 ) {
+  /**
+   * Convert to CBOR map element
+   */
   fun toMapElement() = buildMap {
     put(MapKey("docType"), docType)
     put(MapKey("nameSpaces"), nameSpaces)

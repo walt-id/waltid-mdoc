@@ -9,6 +9,9 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * COSE_Mac0 data structure, with built-in support for creating and verifying HMAC-256 macs
+ */
 @Serializable(with = COSEMac0Serializer::class)
 class COSEMac0(
   override val data: List<AnyDataElement>
@@ -18,6 +21,12 @@ class COSEMac0(
   override fun detachPayload() = COSEMac0(replacePayload(NullElement()))
   override fun attachPayload(payload: ByteArray) = COSEMac0(replacePayload(ByteStringElement(payload)))
 
+  /**
+   * Verify a COSE_Mac0 using the given shared secret and optional external data
+   * @param sharedSecret  The shared secret used for creating the MAC
+   * @param externalData  Optional byte array with external application data
+   * @return True if MAC has been verified
+   */
   fun verify(sharedSecret: ByteArray, externalData: ByteArray = byteArrayOf()): Boolean {
     val mac0Content = createMacStructure(protectedHeader, payload ?: throw Exception("No payload given"), externalData).toCBOR()
     val tag = when(algorithm) {
@@ -36,6 +45,15 @@ class COSEMac0(
         ByteStringElement(payload)
       ))
     }
+
+    /**
+     * Create COSE_Mac0 for the given payload, shared secret and optional external data
+     * Only supports HMAC-256 for now
+     * @param payload The payload for which the MAC is created
+     * @param sharedSecret  Shared secret used for creating the MAC
+     * @param externalData  Optional external application data to be added to the COSE_Mac0 structure before signing
+     * @return  COSE_Mac0 structure containing the COSE headers, payload and MAC (tag)
+     */
     fun createWithHMAC256(payload: ByteArray, sharedSecret: ByteArray, externalData: ByteArray = byteArrayOf()): COSEMac0 {
       val protectedHeaderData = mapOf(
           MapKey(ALG_LABEL) to NumberElement(HMAC256)
@@ -55,7 +73,7 @@ class COSEMac0(
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializer(forClass = COSEMac0::class)
-object COSEMac0Serializer {
+internal object COSEMac0Serializer {
   override fun serialize(encoder: Encoder, value: COSEMac0) {
     encoder.encodeSerializableValue(ListSerializer(DataElementSerializer), value.data)
   }

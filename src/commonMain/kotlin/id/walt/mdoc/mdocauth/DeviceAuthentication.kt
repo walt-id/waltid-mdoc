@@ -24,15 +24,20 @@ class DeviceAuthentication internal constructor (
     )
   )
 
+  /**
+   * Serialize to CBOR data
+   */
   @OptIn(ExperimentalSerializationApi::class)
   fun toCBOR() = Cbor.encodeToByteArray(DeviceAuthenticationSerializer, this)
-
+  /**
+   * Convert to CBOR data element
+   */
   fun toDE() = ListElement(data)
 }
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializer(forClass = DeviceAuthentication::class)
-object DeviceAuthenticationSerializer: KSerializer<DeviceAuthentication> {
+internal object DeviceAuthenticationSerializer: KSerializer<DeviceAuthentication> {
   override fun deserialize(decoder: Decoder): DeviceAuthentication {
     return DeviceAuthentication(
       decoder.decodeSerializableValue(ListSerializer(DataElementSerializer))

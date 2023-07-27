@@ -10,7 +10,7 @@ import kotlinx.serialization.encoding.Encoder
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializer(forClass = MDoc::class)
-object MDocSerializer : KSerializer<MDoc> {
+internal object MDocSerializer : KSerializer<MDoc> {
   override fun serialize(encoder: Encoder, value: MDoc) {
     encoder.encodeSerializableValue(DataElementSerializer, value.toMapElement())
   }

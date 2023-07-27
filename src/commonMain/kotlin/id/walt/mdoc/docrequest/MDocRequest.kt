@@ -43,6 +43,9 @@ data class MDocRequest internal constructor(
         })
   }
 
+  /**
+   * Convert to CBOR map element
+   */
   fun toMapElement() = buildMap {
     put(MapKey("itemsRequest"), itemsRequest)
     readerAuth?.let {

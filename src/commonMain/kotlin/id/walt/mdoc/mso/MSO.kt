@@ -24,6 +24,9 @@ class MSO (
   val nameSpaces
     get() = valueDigests.value.keys.map { it.str }
 
+  /**
+   * Convert to CBOR map element
+   */
   fun toMapElement() = mapOf(
     "version" to version,
     "digestAlgorithm" to digestAlgorithm,

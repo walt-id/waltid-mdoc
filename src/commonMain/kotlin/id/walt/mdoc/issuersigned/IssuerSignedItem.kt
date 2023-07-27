@@ -17,6 +17,9 @@ data class IssuerSignedItem(
     val elementIdentifier: StringElement,
     val elementValue: AnyDataElement
 ) {
+    /**
+     * Convert to CBOR map element
+     */
     fun toMapElement(): MapElement {
         return MapElement(mapOf(
             MapKey("digestID") to digestID,
@@ -27,6 +30,9 @@ data class IssuerSignedItem(
     }
 
     companion object {
+        /**
+         * Convert from CBOR map element
+         */
         fun fromMapElement(element: MapElement): IssuerSignedItem {
             return IssuerSignedItem(
                 (element.value[MapKey("digestID")]!! as NumberElement),
@@ -43,7 +49,7 @@ data class IssuerSignedItem(
 }
 
 @Serializer(forClass = IssuerSignedItem::class)
-object IssuerSignedItemSerializer: KSerializer<IssuerSignedItem> {
+internal object IssuerSignedItemSerializer: KSerializer<IssuerSignedItem> {
     override fun serialize(encoder: Encoder, value: IssuerSignedItem) {
         encoder.encodeSerializableValue(DataElementSerializer, value.toMapElement())
     }

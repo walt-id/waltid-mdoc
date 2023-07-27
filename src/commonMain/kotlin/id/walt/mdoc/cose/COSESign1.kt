@@ -10,6 +10,9 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * COSE_Sign1 data structure
+ */
 @Serializable(with = COSESign1Serializer::class)
 class COSESign1(
     override val data: List<AnyDataElement>
@@ -22,7 +25,7 @@ class COSESign1(
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializer(forClass = COSESign1::class)
-object COSESign1Serializer {
+internal object COSESign1Serializer {
     override fun serialize(encoder: Encoder, value: COSESign1) {
         encoder.encodeSerializableValue(ListSerializer(DataElementSerializer), value.data)
     }

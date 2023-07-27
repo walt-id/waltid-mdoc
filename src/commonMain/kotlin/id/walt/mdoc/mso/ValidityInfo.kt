@@ -16,6 +16,9 @@ class ValidityInfo private constructor(
   constructor(signed: Instant, validFrom: Instant, validUntil: Instant, expectedUpdate: Instant? = null)
     : this(TDateElement(signed), TDateElement(validFrom), TDateElement(validUntil), expectedUpdate?.let { TDateElement(it) })
 
+  /**
+   * Convert to CBOR map element
+   */
   fun toMapElement() = buildMap {
     put("signed", signed)
     put("validFrom", validFrom)
