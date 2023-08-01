@@ -11,10 +11,19 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Device authentication data structure
+ */
 @Serializable(with = DeviceAuthenticationSerializer::class)
 class DeviceAuthentication internal constructor (
   val data: List<AnyDataElement>
 ) {
+  /**
+   * Create device authentication struct from session transcript, doc type and device namespaces
+   * @param sessionTranscript Session transcript
+   * @param docType Doc type
+   * @param deviceNameSpaces Cbor encoded name spaces of device specific data elements
+   */
   constructor(sessionTranscript: ListElement, docType: String, deviceNameSpaces: EncodedCBORElement) : this(
     listOf(
       StringElement("DeviceAuthentication"),

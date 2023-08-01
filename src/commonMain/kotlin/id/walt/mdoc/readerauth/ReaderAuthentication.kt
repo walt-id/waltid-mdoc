@@ -12,10 +12,18 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Reader authentication
+ */
 @Serializable(with = ReaderAuthenticationSerializer::class)
 class ReaderAuthentication internal constructor(
   val data: List<AnyDataElement>
 ) {
+  /**
+   * Reader authentication object
+   * @param sessionTranscript Session transcript of the ongoing reader session
+   * @param itemsRequest CBOR encoded items requests
+   */
   constructor(sessionTranscript: ListElement, itemsRequest: EncodedCBORElement) : this(
     listOf(
       StringElement("ReaderAuthentication"),

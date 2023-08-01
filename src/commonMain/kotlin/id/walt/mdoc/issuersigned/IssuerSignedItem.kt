@@ -9,6 +9,14 @@ import kotlinx.serialization.Serializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * Issuer signed item
+ * Use MDocBuilder to create and add issuer signed items
+ * @param digestID  Unique ID of this item/digest
+ * @param random Random salt value
+ * @param elementIdentifier Element identifier
+ * @param elementValue Value of this element
+ */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable(with = IssuerSignedItemSerializer::class)
 data class IssuerSignedItem(
@@ -42,6 +50,9 @@ data class IssuerSignedItem(
             )
         }
 
+        /**
+         * Create an issuer signed item, with random salt
+         */
         fun createWithRandomSalt(digestID: UInt, elementIdentifier: String, elementValue: AnyDataElement): IssuerSignedItem {
             return IssuerSignedItem(digestID.toDE(),  SecureRandom.nextBytes(16).toDE(), elementIdentifier.toDE(), elementValue)
         }

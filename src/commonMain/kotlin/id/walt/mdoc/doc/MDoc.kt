@@ -201,7 +201,7 @@ data class MDoc(
     /**
      * Present this mdoc to reader, using device MAC
      * @param mDocRequest The request containing requested items, etc. for selective disclosure
-     * @param deviceAuthentication The device authentication structure, which represents the payload to signed by the device
+     * @param deviceAuthentication The device authentication structure, which represents the payload to be signed by the device
      * @param ephemeralMACKey   Ephemeral key used for creating the MAC, as negotiated during session establishment
      * @return MDoc with device-signed data containing the created MAC
      */
