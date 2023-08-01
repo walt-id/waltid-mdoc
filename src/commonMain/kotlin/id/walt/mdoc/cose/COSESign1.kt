@@ -10,38 +10,22 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+/**
+ * COSE_Sign1 data structure
+ */
 @Serializable(with = COSESign1Serializer::class)
 class COSESign1(
-    val data: List<AnyDataElement>
-) {
+    override val data: List<AnyDataElement>
+): COSESimpleBase<COSESign1>() {
     constructor(): this(listOf())
-    val payload: ByteArray?
-        get() {
-            if (data.size != 4) throw SerializationException("Invalid COSE_Sign1 array")
-            return when (data[2].type) {
-                DEType.nil -> null
-                DEType.byteString -> (data[2] as ByteStringElement).value
-                else -> throw SerializationException("Invalid COSE_Sign1 payload")
-            }
-        }
 
-    val x5Chain: ByteArray?
-        get() {
-            if (data.size != 4) throw SerializationException("Invalid COSE_Sign1 array")
-            val unprotectedHeader = data[1] as? MapElement ?: throw SerializationException("Missing COSE_Sign1 unprotected header")
-            val x5Chain = unprotectedHeader.value[MapKey(X5_CHAIN)] as? ByteStringElement
-            return x5Chain?.value
-        }
-
-    @OptIn(ExperimentalSerializationApi::class)
-    fun toCBOR() = Cbor.encodeToByteArray(COSESign1Serializer, this)
-
-    fun toDE() = ListElement(data)
+    override fun detachPayload() = COSESign1(replacePayload(NullElement()))
+    override fun attachPayload(payload: ByteArray) = COSESign1(replacePayload(ByteStringElement(payload)))
 }
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializer(forClass = COSESign1::class)
-object COSESign1Serializer {
+internal object COSESign1Serializer {
     override fun serialize(encoder: Encoder, value: COSESign1) {
         encoder.encodeSerializableValue(ListSerializer(DataElementSerializer), value.data)
     }

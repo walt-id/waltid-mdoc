@@ -56,6 +56,9 @@ class DEDateTimeAttribute(val mode: DEDateTimeMode = DEDateTimeMode.tdate) : DEA
  */
 class DEFullDateAttribute(val mode: DEFullDateMode = DEFullDateMode.full_date_str): DEAttribute(DEType.fullDate)
 
+/**
+ * Generic CBOR data element
+ */
 @Serializable(with = DataElementSerializer::class)
 abstract class DataElement<T> (
   val value: T, val attribute: DEAttribute
@@ -77,18 +80,36 @@ abstract class DataElement<T> (
     return value.hashCode()
   }
 
+  /**
+   * Serialize to CBOR data as byte array
+   */
   @OptIn(ExperimentalSerializationApi::class)
   fun toCBOR() = Cbor.encodeToByteArray(DataElementSerializer, this)
+
+  /**
+   * Serialize to CBOR hex string
+   */
   @OptIn(ExperimentalSerializationApi::class)
   fun toCBORHex() = Cbor.encodeToHexString(DataElementSerializer, this)
+
+  /**
+   * Serialize and wrap in EncodedCBORElement (#6.24-tagged CBOR data element)
+   */
   @OptIn(ExperimentalSerializationApi::class)
   fun toEncodedCBORElement() = EncodedCBORElement(this.toCBOR())
 
   companion object {
+    /**
+     * Deserialize data element from CBOR data
+     */
     @OptIn(ExperimentalSerializationApi::class)
     fun <T : AnyDataElement> fromCBOR(cbor: ByteArray): T {
       return Cbor.decodeFromByteArray(DataElementSerializer, cbor) as T
     }
+
+    /**
+     * Deserialize data element from CBOR hex string
+     */
     @OptIn(ExperimentalSerializationApi::class)
     fun <T : AnyDataElement> fromCBORHex(cbor: String): T {
       return Cbor.decodeFromHexString(DataElementSerializer, cbor) as T
@@ -97,50 +118,104 @@ abstract class DataElement<T> (
 }
 
 typealias AnyDataElement = DataElement<*>
+
+/**
+ * Number element for Long, Int, UInt, float, double, ...
+ */
 @Serializable(with = DataElementSerializer::class)
 class NumberElement(value: Number): DataElement<Number>(value, DEAttribute(DEType.number)) {
   constructor(value: UInt) : this(value.toLong())
 }
+
+/**
+ * Boolean element
+ */
 @Serializable(with = DataElementSerializer::class)
 class BooleanElement(value: Boolean): DataElement<Boolean>(value, DEAttribute(DEType.boolean))
+
+/**
+ * String element
+ */
 @Serializable(with = DataElementSerializer::class)
 class StringElement(value: String): DataElement<String>(value, DEAttribute(DEType.textString))
+
+/**
+ * Byte string element
+ */
 @Serializable(with = DataElementSerializer::class)
 class ByteStringElement(value: ByteArray): DataElement<ByteArray>(value, DEAttribute(DEType.byteString))
+
+/**
+ * List element
+ */
 @Serializable(with = DataElementSerializer::class)
 class ListElement(value: List<AnyDataElement>): DataElement<List<AnyDataElement>>(value, DEAttribute(DEType.list)) {
   constructor() : this(listOf())
 }
+
+/**
+ * Map (object) element
+ * Supports int or string keys
+ */
 @Serializable(with = DataElementSerializer::class)
 class MapElement(value: Map<MapKey, AnyDataElement>): DataElement<Map<MapKey, AnyDataElement>>(value, DEAttribute(DEType.map))
+
+/**
+ * Null element
+ */
 @Serializable(with = DataElementSerializer::class)
 class NullElement(value: Nothing? = null): DataElement<Nothing?>(null, DEAttribute(DEType.nil))
 
-// tdate: #6.0, time: #6.1
+/**
+ * Date element for CBOR tagged dates:
+ * tdate (RFC3339 string): #6.0, time (seconds since epoch): #6.1
+ */
 @Serializable(with = DataElementSerializer::class)
 open class DateTimeElement(value: Instant, subType: DEDateTimeMode = DEDateTimeMode.tdate): DataElement<Instant>(value, DEDateTimeAttribute(subType))
+
+/**
+ * TDate element (RFC3339 string, #6.0)
+ */
 @Serializable(with = DataElementSerializer::class)
 class TDateElement(value: Instant) : DateTimeElement(value, DEDateTimeMode.tdate)
-// full-date #6.1004, #6.100
+/*
+ * Full date element: #6.1004 (RFC 3339 full-date string), #6.100 (Number of days since epoch)
+ */
 @Serializable(with = DataElementSerializer::class)
 class FullDateElement(value: LocalDate, subType: DEFullDateMode = DEFullDateMode.full_date_str): DataElement<LocalDate>(value, DEFullDateAttribute(subType))
 
+/**
+ * Encoded CBOR element (tagged CBOR data, #6.24)
+ */
 @Serializable(with = DataElementSerializer::class)
 class EncodedCBORElement(cborData: ByteArray): DataElement<ByteArray>(cborData, DEAttribute(DEType.encodedCbor)) {
   @OptIn(ExperimentalSerializationApi::class)
   constructor(element: AnyDataElement) : this(element.toCBOR())
 
+  /**
+   * Decode encoded data element
+   */
   fun decode(): AnyDataElement {
     return fromCBOR(value)
   }
+
+  /**
+   * Decode encoded data element to specific data element type
+   */
   inline fun <reified T: AnyDataElement> decodeDataElement(): T {
     return fromCBOR<T>(value)
   }
+  /**
+   * Decode encoded data element to specific type
+   */
   inline fun <reified T> decode(): T {
     return Cbor.decodeFromByteArray(value)
   }
 
   companion object {
+    /**
+     * Create from CBOR data to be wrapped by this encoded CBOR element
+     */
     @OptIn(ExperimentalSerializationApi::class)
     fun fromEncodedCBORElementData(data: ByteArray): EncodedCBORElement
       = fromCBOR<EncodedCBORElement>(data)

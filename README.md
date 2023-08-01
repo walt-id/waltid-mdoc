@@ -1,18 +1,9 @@
 <div align="center">
- <h1>XYZ Kit</h1>
+ <h1>Kotlin Multiplatform MDoc library</h1>
  <span>by </span><a href="https://walt.id">walt.id</a>
  <p>...<p>
  
- test push 6
 
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=walt-id_waltid-xyzkit&metric=security_rating)](https://sonarcloud.io/dashboard?id=walt-id_waltid-xyzkit)
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=walt-id_waltid-xyzkit&metric=vulnerabilities)](https://sonarcloud.io/dashboard?id=walt-id_waltid-xyzkit)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=walt-id_waltid-xyzkit&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=walt-id_waltid-xyzkit)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=walt-id_waltid-xyzkit&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=walt-id_waltid-xyzkit)
-[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=walt-id_waltid-xyzkit&metric=ncloc)](https://sonarcloud.io/dashboard?id=walt-id_waltid-xyzkit)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=walt-id_waltid-xyzkit-examples&metric=alert_status)](https://sonarcloud.io/dashboard?id=walt-id_waltid-xyzkit)
-
-[![CI/CD Workflow for walt.id XYZ Kit](https://github.com/walt-id/waltid-xyzkit/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/walt-id/waltid-xyzkit/actions/workflows/build.yml)
 <a href="https://walt.id/community">
 <img src="https://img.shields.io/badge/Join-The Community-blue.svg?style=flat" alt="Join community!" />
 </a>
@@ -25,20 +16,91 @@
 
 ## Getting Started
 
-Kotlin starter project with the following features:
+## What is the MDoc library
+This library implements the MDoc specification: [ISO/IEC FDIS 18013-5](https://www.iso.org/standard/69084.html), Personal identification -- ISO-compliant driving licence -- Part 5: Mobile driving licence (mDL) application.
 
-**CODE**
-- REST API via *Ktor*
-- DB setup via *Exposed*
-- CLI tool via *clikt*
-- Configuration handling via *hoplite*
-- Unit tests via *kotest*
+### Features
+* **Parse and verify** mdocs and mdoc requests, with verification of MSO-validity, doc type, certificate chains, items tamper check, issuer and device signatures.
+* **Create and sign** MDoc documents with issuer-signed items and COSE Sign1 issuer authentication (mobile security object, MSO).
+* **Present** MDoc documents with selective disclosure of issuer-signed items and MDoc device authentication, based on COSE Mac0 or COSE Sign1.
+* **Create** MDoc requests object with COSE Sign1 reader authentication
+* Support for **integration** with various crypto libraries and frameworks, to perform the cryptographic operations and key management
+* **Multiplatform support**
+  * Kotlin/Java for JVM
+  * JavaScript
+  * Native
 
-**CI/CD**
-- Dockerfile
-- Kubernetes deployment specs
-- Build script `xyzkit.sh`
-- GitHub Action for automatically releasing the project once a PR is merged with the main-line
+## Usage with Maven or Gradle (JVM)
+
+**Maven / Gradle repository**:
+
+`https://maven.walt.id/repository/waltid-ssi-kit/`
+
+**Maven**
+
+```xml
+[...]
+<repositories>
+  <repository>
+    <id>waltid-ssikit</id>
+    <name>waltid-ssikit</name>
+    <url>https://maven.walt.id/repository/waltid-ssi-kit/</url>
+  </repository>
+</repositories>
+[...]
+<dependency>
+    <groupId>id.walt</groupId>
+    <artifactId>waltid-mdoc-jvm</artifactId>
+    <version>[ version ]</version>
+</dependency>
+```
+
+**Gradle**
+
+_Kotlin DSL_
+```kotlin
+[...]
+repositories {
+  maven("https://maven.walt.id/repository/waltid-ssi-kit/")
+}
+[...]
+val mdocVersion = "1.xxx.0"
+[...]
+dependencies {
+  implementation("id.walt:waltid-mdoc-jvm:$mdocVersion")
+}
+```
+
+## Usage with NPM/NodeJs (JavaScript)
+
+**Install NPM package:**
+
+`npm install waltid-mdoc`
+
+**Manual build from source:**
+
+`./gradlew jsNodeProductionLibraryPrepare jsNodeProductionLibraryDistribution`
+
+Then include in your NodeJS project like this:
+
+`npm install /path/to/waltid-mdoc/build/productionLibrary`
+
+**NodeJS example**
+
+Example script in:
+
+`examples/js`
+
+Execute like:
+
+```bash
+npm install
+node index.js
+```
+
+## Examples
+### Kotlin / JVM
+
 
 
 ## License

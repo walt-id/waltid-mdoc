@@ -16,7 +16,7 @@ import kotlinx.serialization.encoding.Encoder
 
 @Serializer(forClass = DataElement::class)
 @OptIn(ExperimentalSerializationApi::class)
-object DataElementSerializer: KSerializer<AnyDataElement> {
+internal object DataElementSerializer: KSerializer<AnyDataElement> {
 
   override fun deserialize(decoder: Decoder): AnyDataElement {
     val curHead = decoder.peek()

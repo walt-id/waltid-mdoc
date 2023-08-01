@@ -4,11 +4,20 @@ import id.walt.mdoc.cose.COSESign1
 import id.walt.mdoc.dataelement.*
 import kotlinx.serialization.Serializable
 
+/**
+ * Issuer signed part of the mdoc
+ * Use MDocBuilder to create and add issuer signed items
+ * @param nameSpaces Items name spaces, with CBOR encoded items
+ * @param issuerAuth Issuer authentication COSE Sign1 structure
+ */
 @Serializable
 data class IssuerSigned(
     val nameSpaces: Map<String, List<EncodedCBORElement>>?,
     val issuerAuth: COSESign1?
 ) {
+    /**
+     * Convert to CBOR map element
+     */
     fun toMapElement() = MapElement(
         buildMap {
             nameSpaces?.let {
@@ -23,6 +32,9 @@ data class IssuerSigned(
     )
 
     companion object {
+        /**
+         * Convert from CBOR map element
+         */
         fun fromMapElement(mapElement: MapElement) = IssuerSigned(
             mapElement.value[MapKey("nameSpaces")]?.let {
                 (it as MapElement).value.map { entry -> Pair(
