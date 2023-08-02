@@ -24,6 +24,7 @@ import io.kotest.matchers.shouldNotBe
 import korlibs.crypto.encoding.Hex
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromHexString
@@ -107,8 +108,11 @@ class JVMMdocTest: AnnotationSpec() {
     // create device key info structure of device public key, for holder binding
     val deviceKeyInfo = DeviceKeyInfo(DataElement.fromCBOR(OneKey(deviceKeyPair.public, null).AsCBOR().EncodeToBytes()))
 
+    // build mdoc and sign using issuer key with holder binding to device key
     val mdoc = MDocBuilder("org.iso.18013.5.1.mDL")
       .addItemToSign("org.iso.18013.5.1", "family_name", "Doe".toDE())
+      .addItemToSign("org.iso.18013.5.1", "given_name", "John".toDE())
+      .addItemToSign("org.iso.18013.5.1", "birth_date", FullDateElement(LocalDate(1990, 1, 15)))
       .sign(ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
         deviceKeyInfo, cryptoProvider, ISSUER_KEY_ID
       )
@@ -118,7 +122,7 @@ class JVMMdocTest: AnnotationSpec() {
     mdoc.MSO shouldNotBe null
     mdoc.MSO!!.digestAlgorithm.value shouldBe "SHA-256"
     val signedItems = mdoc.getIssuerSignedItems("org.iso.18013.5.1")
-    signedItems shouldHaveSize 1
+    signedItems shouldHaveSize 3
     signedItems.first().digestID.value shouldBe 0
     mdoc.MSO!!.valueDigests.value shouldContainKey MapKey("org.iso.18013.5.1")
     OneKey(CBORObject.DecodeFromBytes(mdoc.MSO!!.deviceKeyInfo.deviceKey.toCBOR())).AsPublicKey().encoded shouldBe deviceKeyPair.public.encoded
@@ -180,6 +184,7 @@ class JVMMdocTest: AnnotationSpec() {
     ))
     val sessionTranscript = ListElement(/*... create session transcript according to ISO/IEC FDIS 18013-5, section 9.1.5.1 ...*/)
 
+    // create and sign mdoc request
     val docReq = MDocRequestBuilder("org.iso.18013.5.1.mDL")
       .addDataElementRequest("org.iso.18013.5.1", "family_name", true)
       .addDataElementRequest("org.iso.18013.5.1", "birth_date", false)
@@ -189,6 +194,7 @@ class JVMMdocTest: AnnotationSpec() {
     var devReqCbor = deviceRequest.toCBORHex()
     println("DEVICE REQUEST: $devReqCbor")
 
+    // parse and verify mdoc request
     val parsedReq = DeviceRequest.fromCBORHex(devReqCbor)
     val firstParsedDocRequest = parsedReq.docRequests.first()
     val reqVerified = firstParsedDocRequest.verify(
@@ -208,6 +214,9 @@ class JVMMdocTest: AnnotationSpec() {
         println("-- ${it.key} (intent-to-retain: ${it.value})")
       }
     }
+
+    // load/parse mdoc and present using selective disclosure
+
   }
 
   @Test
