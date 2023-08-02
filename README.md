@@ -101,6 +101,59 @@ node index.js
 ## Examples
 ### Kotlin / JVM
 
+#### Create, parse and verify an mDL request
+
+```kotlin
+val cryptoProvider = SimpleCOSECryptoProvider(listOf(
+  COSECryptoProviderKeyInfo(READER_KEY_ID, AlgorithmID.ECDSA_256, readerKeyPair.public, readerKeyPair.private)
+))
+val sessionTranscript = ListElement(/*... create session transcript according to ISO/IEC FDIS 18013-5, section 9.1.5.1 ...*/)
+
+val docReq = MDocRequestBuilder("org.iso.18013.5.1.mDL")
+  .addDataElementRequest("org.iso.18013.5.1", "family_name", true)
+  .addDataElementRequest("org.iso.18013.5.1", "birth_date", false)
+  .sign(sessionTranscript, cryptoProvider, READER_KEY_ID)
+
+val deviceRequest = DeviceRequest(listOf(docReq))
+var devReqCbor = deviceRequest.toCBORHex()
+println("DEVICE REQUEST: $devReqCbor")
+
+val parsedReq = DeviceRequest.fromCBORHex(devReqCbor)
+val firstParsedDocRequest = parsedReq.docRequests.first()
+val reqVerified = firstParsedDocRequest.verify(
+  MDocRequestVerificationParams(
+    requiresReaderAuth = true,
+    READER_KEY_ID,
+    allowedToRetain = mapOf("org.iso.18013.5.1" to setOf("family_name")),
+    ReaderAuthentication(sessionTranscript, firstParsedDocRequest.itemsRequest)
+  ), cryptoProvider
+)
+println("Request verified: $reqVerified")
+println("Requested doc type: ${firstParsedDocRequest.docType}")
+println("Requested items:")
+firstParsedDocRequest.nameSpaces.forEach { ns ->
+  println("- NameSpace: $ns")
+  firstParsedDocRequest.getRequestedItemsFor(ns).forEach {
+    println("-- ${it.key} (intent-to-retain: ${it.value})")
+  }
+}
+```
+_Example output_:
+```text
+DEVICE REQUEST: a26776657273696f6e63312e306b646f63526571756573747381a26c6974656d7352657175657374d8185857a267646f6354797065756f72672e69736f2e31383031332e352e312e6d444c6a6e616d65537061636573a1716f72672e69736f2e31383031332e352e31a26b66616d696c795f6e616d65f56a62697274685f64617465f46a726561646572417574688443a10126a11821f6f65840d52b28bbd50252ea93181d9bbcb5b01cbeb11ae442a05bf839dcc3fb9dc6cb92c6fc5eaed6b430ee19a111a1678f2ea959cd8232c6c9828101016caffd3de771
+Request verified: true
+Requested doc type: org.iso.18013.5.1.mDL
+Requested items:
+- NameSpace: org.iso.18013.5.1
+-- family_name (intent-to-retain: true)
+-- birth_date (intent-to-retain: false)
+```
+
+* Parse mDL doc (device) response
+* Verify MSO and device auth
+* List mdoc properties and values
+* 
+
 
 
 ## License

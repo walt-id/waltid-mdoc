@@ -8,6 +8,7 @@ import id.walt.mdoc.dataelement.*
 import id.walt.mdoc.dataretrieval.DeviceRequest
 import id.walt.mdoc.dataretrieval.DeviceResponse
 import id.walt.mdoc.doc.*
+import id.walt.mdoc.docrequest.MDocRequest
 import id.walt.mdoc.docrequest.MDocRequestBuilder
 import id.walt.mdoc.docrequest.MDocRequestVerificationParams
 import id.walt.mdoc.mdocauth.DeviceAuthentication
@@ -54,6 +55,7 @@ class JVMMdocTest: AnnotationSpec() {
   lateinit var caKeyPair: KeyPair
   lateinit var issuerKeyPair: KeyPair
   lateinit var deviceKeyPair: KeyPair
+  lateinit var readerKeyPair: KeyPair
   lateinit var caCertificate: X509Certificate
   lateinit var issuerCertificate: X509Certificate
 
@@ -68,6 +70,7 @@ class JVMMdocTest: AnnotationSpec() {
     issuerKeyPair = kpg.genKeyPair()
     // create key pair for mdoc auth (device/holder key)
     deviceKeyPair = kpg.genKeyPair()
+    readerKeyPair = kpg.genKeyPair()
 
     // create CA certificate
     caCertificate = X509v3CertificateBuilder(
@@ -168,6 +171,43 @@ class JVMMdocTest: AnnotationSpec() {
     mdoc.documents[0].verifySignature(cryptoProvider, ISSUER_KEY_ID) shouldBe true
     // CA certificate of example not trusted
     //mdoc.documents[0].verifyCertificate(cryptoProvider) shouldBe true
+  }
+
+  @Test
+  fun exampleCreateParseVerifyMDLRequest() {
+    val cryptoProvider = SimpleCOSECryptoProvider(listOf(
+      COSECryptoProviderKeyInfo(READER_KEY_ID, AlgorithmID.ECDSA_256, readerKeyPair.public, readerKeyPair.private)
+    ))
+    val sessionTranscript = ListElement(/*... create session transcript according to ISO/IEC FDIS 18013-5, section 9.1.5.1 ...*/)
+
+    val docReq = MDocRequestBuilder("org.iso.18013.5.1.mDL")
+      .addDataElementRequest("org.iso.18013.5.1", "family_name", true)
+      .addDataElementRequest("org.iso.18013.5.1", "birth_date", false)
+      .sign(sessionTranscript, cryptoProvider, READER_KEY_ID)
+
+    val deviceRequest = DeviceRequest(listOf(docReq))
+    var devReqCbor = deviceRequest.toCBORHex()
+    println("DEVICE REQUEST: $devReqCbor")
+
+    val parsedReq = DeviceRequest.fromCBORHex(devReqCbor)
+    val firstParsedDocRequest = parsedReq.docRequests.first()
+    val reqVerified = firstParsedDocRequest.verify(
+      MDocRequestVerificationParams(
+        requiresReaderAuth = true,
+        READER_KEY_ID,
+        allowedToRetain = mapOf("org.iso.18013.5.1" to setOf("family_name")),
+        ReaderAuthentication(sessionTranscript, firstParsedDocRequest.itemsRequest)
+      ), cryptoProvider
+    )
+    println("Request verified: $reqVerified")
+    println("Requested doc type: ${firstParsedDocRequest.docType}")
+    println("Requested items:")
+    firstParsedDocRequest.nameSpaces.forEach { ns ->
+      println("- NameSpace: $ns")
+      firstParsedDocRequest.getRequestedItemsFor(ns).forEach {
+        println("-- ${it.key} (intent-to-retain: ${it.value})")
+      }
+    }
   }
 
   @Test
