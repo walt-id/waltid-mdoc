@@ -1,10 +1,9 @@
 package id.walt.mdoc.docrequest
 
+import id.walt.mdoc.cose.COSECryptoProvider
 import id.walt.mdoc.cose.COSESign1
-import id.walt.mdoc.dataelement.BooleanElement
-import id.walt.mdoc.dataelement.EncodedCBORElement
-import id.walt.mdoc.dataelement.MapKey
-import id.walt.mdoc.dataelement.toDE
+import id.walt.mdoc.dataelement.*
+import id.walt.mdoc.readerauth.ReaderAuthentication
 
 /**
  * MDoc request builder
@@ -25,20 +24,28 @@ class MDocRequestBuilder(val docType: String) {
     return this
   }
 
+  private fun buildEncodedItemsRequest() = EncodedCBORElement(ItemsRequest(
+    docType = docType.toDE(),
+    nameSpaces = nameSpaces.map { ns ->
+      Pair(MapKey(ns.key), ns.value.map { item ->
+        Pair(MapKey(item.key), BooleanElement(item.value))
+      }.toMap().toDE())
+    }.toMap().toDE()
+  ).toMapElement())
+
   /**
    * Build mdoc request object
    * @param reader authentication COSE Sign1 structure, if required
    * @return the mdoc request object
    */
   fun build(readerAuth: COSESign1? = null) = MDocRequest(
-    EncodedCBORElement(ItemsRequest(
-      docType = docType.toDE(),
-      nameSpaces = nameSpaces.map { ns ->
-        Pair(MapKey(ns.key), ns.value.map { item ->
-          Pair(MapKey(item.key), BooleanElement(item.value))
-        }.toMap().toDE())
-      }.toMap().toDE()
-    ).toMapElement()),
+    buildEncodedItemsRequest(),
     readerAuth
   )
+
+  fun sign(sessionTranscript: ListElement, cryptoProvider: COSECryptoProvider, keyID: String? = null): MDocRequest {
+    val encodedItemsRequest = buildEncodedItemsRequest()
+    val readerAuth = cryptoProvider.sign1(EncodedCBORElement(ReaderAuthentication(sessionTranscript, encodedItemsRequest).toCBOR()).toCBOR(), keyID)
+    return MDocRequest(encodedItemsRequest, readerAuth.detachPayload())
+  }
 }
