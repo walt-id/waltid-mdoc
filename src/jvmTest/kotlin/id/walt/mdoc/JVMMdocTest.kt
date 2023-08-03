@@ -271,6 +271,13 @@ class JVMMdocTest: AnnotationSpec() {
 
     // present with selective disclosure
     val presentedMdoc = mdoc.presentWithDeviceMAC(mdocRequest, deviceAuthentication, ephemeralMacKey)
+    println("Presented MDOC: ${presentedMdoc.toCBORHex()}")
+    presentedMdoc.nameSpaces.forEach { ns ->
+      println("Namespace: $ns")
+      presentedMdoc.getIssuerSignedItems(ns).forEach { issuerSignedItem ->
+        println("- ${issuerSignedItem.elementIdentifier.value}: ${issuerSignedItem.elementValue.value.toString()}")
+      }
+    }
     presentedMdoc.nameSpaces shouldContainExactly setOf("org.iso.18013.5.1")
     presentedMdoc.getIssuerSignedItems("org.iso.18013.5.1").map {
       it.elementIdentifier.value
@@ -283,12 +290,14 @@ class JVMMdocTest: AnnotationSpec() {
       COSECryptoProviderKeyInfo(ISSUER_KEY_ID, AlgorithmID.ECDSA_256, cert.publicKey, null, listOf(cert))
     ))
 
-    presentedMdoc.verify(MDocVerificationParams(
+    val mdocVerified = presentedMdoc.verify(MDocVerificationParams(
       VerificationType.DOC_TYPE and VerificationType.DEVICE_SIGNATURE and VerificationType.ISSUER_SIGNATURE and VerificationType.ITEMS_TAMPER_CHECK,
       ISSUER_KEY_ID,
       ephemeralMacKey = ephemeralMacKey,
       deviceAuthentication = deviceAuthentication,
       mDocRequest = mdocRequest
-    ), cryptoProvider) shouldBe true
+    ), cryptoProvider)
+    println("Verified: $mdocVerified")
+    mdocVerified shouldBe true
   }
 }
