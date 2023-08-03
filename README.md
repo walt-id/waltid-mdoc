@@ -1,8 +1,9 @@
 <div align="center">
  <h1>Kotlin Multiplatform MDoc library</h1>
  <span>by </span><a href="https://walt.id">walt.id</a>
- <p>...<p>
- 
+ <p>Create credentials in MDoc format, aligned with the mDL (ISO/IEC 18013-5) standard<p>
+
+[![CI/CD workflow for walt.id MDoc Lib](https://github.com/walt-id/waltid-mdoc/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/walt-id/waltid-mdoc/actions/workflows/ci.yml)
 
 <a href="https://walt.id/community">
 <img src="https://img.shields.io/badge/Join-The Community-blue.svg?style=flat" alt="Join community!" />
