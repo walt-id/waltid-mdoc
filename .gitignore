@@ -21,20 +21,3 @@ gradle-app.setting
 gradle.properties
 
 .vscode
-
-# WaltID SSI-Kit
-keys/
-*.db
-/data-20210719/
-/docs/essif/*
-*.log
-data
-logs
-keystore
-
-secret*
-
-credential-store
-
-revoked.json
-bin/
