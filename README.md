@@ -3,7 +3,8 @@
  <span>by </span><a href="https://walt.id">walt.id</a>
  <p>Create credentials in <b>MDoc format</b>, according the <b>mDL (ISO/IEC 18013-5)</b> standard<p>
 
-[![CI/CD workflow for the walt.id MDoc Lib](https://github.com/walt-id/waltid-mdoc/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/walt-id/waltid-mdoc/actions/workflows/build.yml)
+
+[![CI/CD workflow for the walt.id MDoc Lib](https://github.com/walt-id/waltid-mdoc/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/walt-id/waltid-mdoc/actions/workflows/release.yml)
 
 <a href="https://walt.id/community">
 <img src="https://img.shields.io/badge/Join-The Community-blue.svg?style=flat" alt="Join community!" />
