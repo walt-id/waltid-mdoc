@@ -1,10 +1,10 @@
 <div align="center">
- <h1>Kotlin Multiplatform MDoc library</h1>
+ <h1>Kotlin Multiplatform mdoc library</h1>
  <span>by </span><a href="https://walt.id">walt.id</a>
- <p>Create credentials in <b>MDoc format</b>, according the <b>mDL (ISO/IEC 18013-5)</b> standard<p>
+ <p>Create credentials in <b>mdoc format</b> according to <b>ISO/IEC 18013-5:2021</b> standard<p>
 
 
-[![CI/CD workflow for the walt.id MDoc Lib](https://github.com/walt-id/waltid-mdoc/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/walt-id/waltid-mdoc/actions/workflows/release.yml)
+[![CI/CD workflow for the walt.id mdoc Lib](https://github.com/walt-id/waltid-mdoc/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/walt-id/waltid-mdoc/actions/workflows/release.yml)
 
 <a href="https://walt.id/community">
 <img src="https://img.shields.io/badge/Join-The Community-blue.svg?style=flat" alt="Join community!" />
@@ -18,14 +18,14 @@
 
 ## Getting Started
 
-## What is the MDoc library
-This library implements the MDoc specification: [ISO/IEC FDIS 18013-5](https://www.iso.org/standard/69084.html), Personal identification -- ISO-compliant driving licence -- Part 5: Mobile driving licence (mDL) application.
+## What is the mdoc library
+This library implements the mdoc specification: [ISO/IEC 18013-5:2021](https://www.iso.org/standard/69084.html), Personal identification -- ISO-compliant driving licence -- Part 5: Mobile driving licence (mDL) application.
 
 ### Features
 * **Parse and verify** mdocs and mdoc requests, with verification of MSO-validity, doc type, certificate chains, items tamper check, issuer and device signatures.
-* **Create and sign** MDoc documents with issuer-signed items and COSE Sign1 issuer authentication (mobile security object, MSO).
-* **Present** MDoc documents with selective disclosure of issuer-signed items and MDoc device authentication, based on COSE Mac0 or COSE Sign1.
-* **Create** MDoc requests object with COSE Sign1 reader authentication
+* **Create and sign** mdoc documents with issuer-signed items and COSE Sign1 issuer authentication (mobile security object, MSO).
+* **Present** mdoc documents with selective disclosure of issuer-signed items and mdoc device authentication, based on COSE Mac0 or COSE Sign1.
+* **Create** mdoc requests object with COSE Sign1 reader authentication
 * Support for **integration** with various crypto libraries and frameworks, to perform the cryptographic operations and key management
 * **Multiplatform support**
   * Kotlin/Java for JVM
