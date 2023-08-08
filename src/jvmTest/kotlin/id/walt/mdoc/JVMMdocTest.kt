@@ -97,7 +97,7 @@ class JVMMdocTest: AnnotationSpec() {
 
   @OptIn(ExperimentalSerializationApi::class)
   @Test
-  fun testSigning() {
+  fun testSigningMdl() {
     // instantiate simple cose crypto provider for issuer keys and certificates
     val cryptoProvider = SimpleCOSECryptoProvider(
       listOf(
@@ -108,7 +108,7 @@ class JVMMdocTest: AnnotationSpec() {
     // create device key info structure of device public key, for holder binding
     val deviceKeyInfo = DeviceKeyInfo(DataElement.fromCBOR(OneKey(deviceKeyPair.public, null).AsCBOR().EncodeToBytes()))
 
-    // build mdoc and sign using issuer key with holder binding to device key
+    // build mdoc of type mDL and sign using issuer key with holder binding to device key
     val mdoc = MDocBuilder("org.iso.18013.5.1.mDL")
       .addItemToSign("org.iso.18013.5.1", "family_name", "Doe".toDE())
       .addItemToSign("org.iso.18013.5.1", "given_name", "John".toDE())
@@ -116,7 +116,7 @@ class JVMMdocTest: AnnotationSpec() {
       .sign(ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
         deviceKeyInfo, cryptoProvider, ISSUER_KEY_ID
       )
-    println("SIGNED MDOC:")
+    println("SIGNED MDOC (mDL):")
     println(Cbor.encodeToHexString(mdoc))
 
     mdoc.MSO shouldNotBe null
@@ -299,5 +299,91 @@ class JVMMdocTest: AnnotationSpec() {
     ), cryptoProvider)
     println("Verified: $mdocVerified")
     mdocVerified shouldBe true
+  }
+
+  @Test
+  fun testSigningMobileEIDDocument() {
+    // ISO-IEC JTC 1-SC 17_N0_ISO-IEC JTC 1 SC 17 N7213 text_for_CD_consultation_ISO-IEC_23220-2.pdf
+    // Cards and security devices for personal identification — Building
+    // blocks for identity management via mobile devices — Part 2: Data
+    // objects and encoding rules for generic eID-System
+
+
+    // org.iso.23220.mID.1
+    // namespace = org.iso.23220.1
+    // org.iso.18013.5.1.mDL
+
+
+/*    VICAL = verified issuing certificate authority list
+    18013-5 definiert*/
+
+
+    // instantiate simple cose crypto provider for issuer keys and certificates
+    val cryptoProvider = SimpleCOSECryptoProvider(
+      listOf(
+        COSECryptoProviderKeyInfo(ISSUER_KEY_ID, AlgorithmID.ECDSA_256, issuerKeyPair.public, issuerKeyPair.private, listOf(issuerCertificate), listOf(caCertificate)),
+        COSECryptoProviderKeyInfo(DEVICE_KEY_ID, AlgorithmID.ECDSA_256, deviceKeyPair.public, deviceKeyPair.private)
+      )
+    )
+    // create device key info structure of device public key, for holder binding
+    val deviceKeyInfo = DeviceKeyInfo(DataElement.fromCBOR(OneKey(deviceKeyPair.public, null).AsCBOR().EncodeToBytes()))
+
+    // build mdoc of type mID and sign using issuer key with holder binding to device key
+    val mdoc = MDocBuilder("org.iso.23220.mID.1")
+      .addItemToSign("org.iso.18013.5.1", "family_name", "Doe".toDE())
+      .addItemToSign("org.iso.18013.5.1", "given_name", "John".toDE())
+      .addItemToSign("org.iso.18013.5.1", "birth_date", FullDateElement(LocalDate(1990, 1, 15)))
+      .addItemToSign("org.iso.18013.5.1", "sex", "1".toDE()) // ISO/IEC 5218
+      .addItemToSign("org.iso.18013.5.1", "height", "175".toDE())
+      .addItemToSign("org.iso.18013.5.1", "weight", "70".toDE())
+      .addItemToSign("org.iso.18013.5.1", "birthplace", "Vienna".toDE())
+      .addItemToSign("org.iso.18013.5.1", "nationality", "AT".toDE())
+      .addItemToSign("org.iso.18013.5.1", "telephone_number", "0987654".toDE())
+      .addItemToSign("org.iso.18013.5.1", "email_address", "john@email.com".toDE())
+      .sign(ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
+        deviceKeyInfo, cryptoProvider, ISSUER_KEY_ID
+      )
+
+    println("MDOC (mID):")
+    mdoc.nameSpaces.forEach { ns ->
+      println("Namespace: $ns")
+      mdoc.getIssuerSignedItems(ns).forEach { issuerSignedItem ->
+        println("- ${issuerSignedItem.elementIdentifier.value}: ${issuerSignedItem.elementValue.value.toString()}")
+      }
+    }
+    println("SIGNED MDOC (mID):")
+    println(Cbor.encodeToHexString(mdoc))
+
+    mdoc.MSO shouldNotBe null
+    mdoc.MSO!!.digestAlgorithm.value shouldBe "SHA-256"
+    val signedItems = mdoc.getIssuerSignedItems("org.iso.18013.5.1")
+    signedItems shouldHaveSize 10
+    signedItems.first().digestID.value shouldBe 0
+    mdoc.MSO!!.valueDigests.value shouldContainKey MapKey("org.iso.18013.5.1")
+    OneKey(CBORObject.DecodeFromBytes(mdoc.MSO!!.deviceKeyInfo.deviceKey.toCBOR())).AsPublicKey().encoded shouldBe deviceKeyPair.public.encoded
+    mdoc.verify(MDocVerificationParams(VerificationType.forIssuance, ISSUER_KEY_ID), cryptoProvider) shouldBe true
+
+
+    // test presentation with device signature
+    val ephemeralReaderKey = COSE.OneKey.generateKey(AlgorithmID.ECDSA_256)
+    val deviceAuthentication = DeviceAuthentication(sessionTranscript = ListElement(listOf(
+      NullElement(),
+      EncodedCBORElement(ephemeralReaderKey.AsCBOR().EncodeToBytes()),
+      NullElement()
+    )), mdoc.docType.value, EncodedCBORElement(MapElement(mapOf())))
+
+    val mdocRequest = MDocRequestBuilder(mdoc.docType.value).addDataElementRequest("org.iso.18013.5.1", "family_name", true).build()
+
+    val presentedMdoc = mdoc.presentWithDeviceSignature(mdocRequest, deviceAuthentication, cryptoProvider, DEVICE_KEY_ID)
+
+    presentedMdoc.verify(
+      MDocVerificationParams(
+        VerificationType.forPresentation,
+        ISSUER_KEY_ID, DEVICE_KEY_ID,
+        deviceAuthentication = deviceAuthentication,
+        mDocRequest =  mdocRequest
+      ),
+      cryptoProvider
+    ) shouldBe true
   }
 }
