@@ -254,7 +254,45 @@ Namespace: org.iso.18013.5.1
 - document_number: 123456789
 ```
 
+### Sign a mobile eID document (ISO-IEC_23220-2) 
+```kotlin
+    val mdoc = MDocBuilder("org.iso.23220.mID.1")
+      .addItemToSign("org.iso.23220.1", "family_name", "Doe".toDE())
+      .addItemToSign("org.iso.23220.1", "given_name", "John".toDE())
+      .addItemToSign("org.iso.23220.1", "birth_date", FullDateElement(LocalDate(1990, 1, 15)))
+      .addItemToSign("org.iso.23220.1", "sex", "1".toDE()) // ISO/IEC 5218
+      .addItemToSign("org.iso.23220.1", "height", "175".toDE())
+      .addItemToSign("org.iso.23220.1", "weight", "70".toDE())
+      .addItemToSign("org.iso.23220.1", "birthplace", "Vienna".toDE())
+      .addItemToSign("org.iso.23220.1", "nationality", "AT".toDE())
+      .addItemToSign("org.iso.23220.1", "telephone_number", "0987654".toDE())
+      .addItemToSign("org.iso.23220.1", "email_address", "john@email.com".toDE())
+      .sign(ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
+        deviceKeyInfo, cryptoProvider, ISSUER_KEY_ID
+      )
 
+```
+
+### Verify certain elements of the above signed mobile eID document (ISO-IEC_23220-2)
+```kotlin
+    val mdocRequest = MDocRequestBuilder(mdoc.docType.value)
+      .addDataElementRequest("org.iso.23220.1", "family_name", true)
+      .addDataElementRequest("org.iso.23220.1", "given_name", true)
+      .addDataElementRequest("org.iso.23220.1", "birth_date", true)
+      .build()
+
+    val presentedMdoc = mdoc.presentWithDeviceSignature(mdocRequest, deviceAuthentication, cryptoProvider, DEVICE_KEY_ID)
+
+    presentedMdoc.verify(
+      MDocVerificationParams(
+        VerificationType.forPresentation,
+        ISSUER_KEY_ID, DEVICE_KEY_ID,
+        deviceAuthentication = deviceAuthentication,
+        mDocRequest =  mdocRequest
+      ),
+      cryptoProvider
+    )
+```
 
 ## License
 
