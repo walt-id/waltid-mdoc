@@ -36,7 +36,7 @@ This library implements the mdoc specification: [ISO/IEC 18013-5:2021](https://w
 
 **Maven / Gradle repository**:
 
-`https://maven.walt.id/repository/waltid-ssi-kit/`
+`https://maven.walt.id/repository/waltid/`
 
 **Maven**
 
@@ -44,9 +44,9 @@ This library implements the mdoc specification: [ISO/IEC 18013-5:2021](https://w
 [...]
 <repositories>
   <repository>
-    <id>waltid-ssikit</id>
-    <name>waltid-ssikit</name>
-    <url>https://maven.walt.id/repository/waltid-ssi-kit/</url>
+    <id>waltid</id>
+    <name>walt.id</name>
+    <url>https://maven.walt.id/repository/waltid/</url>
   </repository>
 </repositories>
 [...]
@@ -63,7 +63,7 @@ _Kotlin DSL_
 ```kotlin
 [...]
 repositories {
-  maven("https://maven.walt.id/repository/waltid-ssi-kit/")
+  maven("https://maven.walt.id/repository/waltid/")
 }
 [...]
 val mdocVersion = "1.xxx.0"
@@ -132,7 +132,7 @@ SIGNED MDOC:
 a267646f6354797065756f72672e69736f2e31383031332e352e312e6d444c6c6973737565725369676e6564a26a6e616d65537061636573a1716f72672e69736f2e31383031332e352e3183d8185852a4686469676573744944006672616e646f6d501d5a0b315468e8e741c7d0fbf2267ea671656c656d656e744964656e7469666965726b66616d696c795f6e616d656c656c656d656e7456616c756563446f65d8185852a4686469676573744944016672616e646f6d505a212f6b1afa24c80fdf756859b6e0e571656c656d656e744964656e7469666965726a676976656e5f6e616d656c656c656d656e7456616c7565644a6f686ed818585ba4686469676573744944026672616e646f6d50595961fbb375b6330e60016e33e3caa471656c656d656e744964656e7469666965726a62697274685f646174656c656c656d656e7456616c7565d903ec6a313939302d30312d31356a697373756572417574688443a10126a1182159014b308201473081eea00302010202085851077f1cb3d768300a06082a8648ce3d04030230173115301306035504030c0c4d444f432054657374204341301e170d3233303830323136323231395a170d3233303830333136323231395a301b3119301706035504030c104d444f432054657374204973737565723059301306072a8648ce3d020106082a8648ce3d030107034200045f1c8ff18cb0b57445f16eec0584fcf69a6829d955a3284fa42e4d091f6da49196f5b9c917a39ecbf2bf7cdd06597169433c1d9cde0a9ee9772bd29b12fcb775a320301e300c0603551d130101ff04023000300e0603551d0f0101ff040403020780300a06082a8648ce3d0403020348003045022075e093d7e7128060f42ca9a675b97c6312c46cbecd23afdbe8619e964eab37e2022100d9b522c7b80f93dd978a955d0ffdb5f64dc40fa9aa1aa6e10902b306821d13ed5901c3d8185901bea66776657273696f6e63312e306f646967657374416c676f726974686d675348412d3235366c76616c756544696765737473a1716f72672e69736f2e31383031332e352e31a3005820534172b2a1e4082a7644b42299271711891b29adfd50b10a18524e8827d308ae0158204892baa76842258533af9eac579397d024cbff8536afda2da2b9c62a4b30704102582002fc10a9f125740b67e29264cd03ba4994a56f3377c62344d092c614cc18bdb06d6465766963654b6579496e666fa1696465766963654b6579a401022001215820f2862d595d95758368138cb90e3c0df01a432ce1f569ea0d26e80351cf6d0425225820fd20afda5943e95dbd6c679fe1ffb425ec92a65bfcfa2c2c1882669d3bed737267646f6354797065756f72672e69736f2e31383031332e352e312e6d444c6c76616c6964697479496e666fa3667369676e6564c0781e323032332d30382d30325431363a32323a31392e3235323531363736395a6976616c696446726f6dc0781e323032332d30382d30325431363a32323a31392e3235323531393730355a6a76616c6964556e74696cc0781e323032342d30382d30315431363a32323a31392e3235323532303435375a5840a59ce0142b6943b26da7a79a71167ab459702d4231a46990d573445034abee6fe275582686a71ab37fed5a6a0819c740bb79f6e24e7786022db07c7469cb1d09
 ```
 
-#### Create, parse and verify an mDL request
+#### Create, parse and verify a mdoc (mDL) request
 
 ```kotlin
 val cryptoProvider = SimpleCOSECryptoProvider(listOf(
@@ -254,7 +254,45 @@ Namespace: org.iso.18013.5.1
 - document_number: 123456789
 ```
 
+### Sign a mobile eID document (ISO-IEC_23220-2) 
+```kotlin
+    val mdoc = MDocBuilder("org.iso.23220.mID.1")
+      .addItemToSign("org.iso.23220.1", "family_name", "Doe".toDE())
+      .addItemToSign("org.iso.23220.1", "given_name", "John".toDE())
+      .addItemToSign("org.iso.23220.1", "birth_date", FullDateElement(LocalDate(1990, 1, 15)))
+      .addItemToSign("org.iso.23220.1", "sex", "1".toDE()) // ISO/IEC 5218
+      .addItemToSign("org.iso.23220.1", "height", "175".toDE())
+      .addItemToSign("org.iso.23220.1", "weight", "70".toDE())
+      .addItemToSign("org.iso.23220.1", "birthplace", "Vienna".toDE())
+      .addItemToSign("org.iso.23220.1", "nationality", "AT".toDE())
+      .addItemToSign("org.iso.23220.1", "telephone_number", "0987654".toDE())
+      .addItemToSign("org.iso.23220.1", "email_address", "john@email.com".toDE())
+      .sign(ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
+        deviceKeyInfo, cryptoProvider, ISSUER_KEY_ID
+      )
 
+```
+
+### Verify certain elements of the above signed mobile eID document (ISO-IEC_23220-2)
+```kotlin
+    val mdocRequest = MDocRequestBuilder(mdoc.docType.value)
+      .addDataElementRequest("org.iso.23220.1", "family_name", true)
+      .addDataElementRequest("org.iso.23220.1", "given_name", true)
+      .addDataElementRequest("org.iso.23220.1", "birth_date", true)
+      .build()
+
+    val presentedMdoc = mdoc.presentWithDeviceSignature(mdocRequest, deviceAuthentication, cryptoProvider, DEVICE_KEY_ID)
+
+    presentedMdoc.verify(
+      MDocVerificationParams(
+        VerificationType.forPresentation,
+        ISSUER_KEY_ID, DEVICE_KEY_ID,
+        deviceAuthentication = deviceAuthentication,
+        mDocRequest =  mdocRequest
+      ),
+      cryptoProvider
+    )
+```
 
 ## License
 

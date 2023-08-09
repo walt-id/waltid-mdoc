@@ -21,3 +21,6 @@ gradle-app.setting
 gradle.properties
 
 .vscode
+
+# walt.id
+secret_*
