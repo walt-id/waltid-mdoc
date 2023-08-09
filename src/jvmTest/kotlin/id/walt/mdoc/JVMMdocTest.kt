@@ -8,7 +8,6 @@ import id.walt.mdoc.dataelement.*
 import id.walt.mdoc.dataretrieval.DeviceRequest
 import id.walt.mdoc.dataretrieval.DeviceResponse
 import id.walt.mdoc.doc.*
-import id.walt.mdoc.docrequest.MDocRequest
 import id.walt.mdoc.docrequest.MDocRequestBuilder
 import id.walt.mdoc.docrequest.MDocRequestVerificationParams
 import id.walt.mdoc.mdocauth.DeviceAuthentication
@@ -98,6 +97,10 @@ class JVMMdocTest: AnnotationSpec() {
   @OptIn(ExperimentalSerializationApi::class)
   @Test
   fun testSigningMdl() {
+    // ISO-IEC_18013-5:2021
+    // Personal identification — ISO-compliant driving licence
+    // Part 5: Mobile driving licence (mDL) application
+
     // instantiate simple cose crypto provider for issuer keys and certificates
     val cryptoProvider = SimpleCOSECryptoProvider(
       listOf(
@@ -303,20 +306,10 @@ class JVMMdocTest: AnnotationSpec() {
 
   @Test
   fun testSigningMobileEIDDocument() {
-    // ISO-IEC JTC 1-SC 17_N0_ISO-IEC JTC 1 SC 17 N7213 text_for_CD_consultation_ISO-IEC_23220-2.pdf
-    // Cards and security devices for personal identification — Building
-    // blocks for identity management via mobile devices — Part 2: Data
-    // objects and encoding rules for generic eID-System
-
-
-    // org.iso.23220.mID.1
-    // namespace = org.iso.23220.1
-    // org.iso.18013.5.1.mDL
-
-
-/*    VICAL = verified issuing certificate authority list
-    18013-5 definiert*/
-
+    // ISO-IEC_23220-2
+    // Cards and security devices for personal identification
+    // Building blocks for identity management via mobile devices
+    // Part 2: Data objects and encoding rules for generic eID-System
 
     // instantiate simple cose crypto provider for issuer keys and certificates
     val cryptoProvider = SimpleCOSECryptoProvider(
@@ -330,36 +323,35 @@ class JVMMdocTest: AnnotationSpec() {
 
     // build mdoc of type mID and sign using issuer key with holder binding to device key
     val mdoc = MDocBuilder("org.iso.23220.mID.1")
-      .addItemToSign("org.iso.18013.5.1", "family_name", "Doe".toDE())
-      .addItemToSign("org.iso.18013.5.1", "given_name", "John".toDE())
-      .addItemToSign("org.iso.18013.5.1", "birth_date", FullDateElement(LocalDate(1990, 1, 15)))
-      .addItemToSign("org.iso.18013.5.1", "sex", "1".toDE()) // ISO/IEC 5218
-      .addItemToSign("org.iso.18013.5.1", "height", "175".toDE())
-      .addItemToSign("org.iso.18013.5.1", "weight", "70".toDE())
-      .addItemToSign("org.iso.18013.5.1", "birthplace", "Vienna".toDE())
-      .addItemToSign("org.iso.18013.5.1", "nationality", "AT".toDE())
-      .addItemToSign("org.iso.18013.5.1", "telephone_number", "0987654".toDE())
-      .addItemToSign("org.iso.18013.5.1", "email_address", "john@email.com".toDE())
+      .addItemToSign("org.iso.23220.1", "family_name", "Doe".toDE())
+      .addItemToSign("org.iso.23220.1", "given_name", "John".toDE())
+      .addItemToSign("org.iso.23220.1", "birth_date", FullDateElement(LocalDate(1990, 1, 15)))
+      .addItemToSign("org.iso.23220.1", "sex", "1".toDE()) // ISO/IEC 5218
+      .addItemToSign("org.iso.23220.1", "height", "175".toDE())
+      .addItemToSign("org.iso.23220.1", "weight", "70".toDE())
+      .addItemToSign("org.iso.23220.1", "birthplace", "Vienna".toDE())
+      .addItemToSign("org.iso.23220.1", "nationality", "AT".toDE())
+      .addItemToSign("org.iso.23220.1", "telephone_number", "0987654".toDE())
+      .addItemToSign("org.iso.23220.1", "email_address", "john@email.com".toDE())
       .sign(ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
         deviceKeyInfo, cryptoProvider, ISSUER_KEY_ID
       )
 
-    println("MDOC (mID):")
     mdoc.nameSpaces.forEach { ns ->
-      println("Namespace: $ns")
+      println("mobile eID ($ns)")
       mdoc.getIssuerSignedItems(ns).forEach { issuerSignedItem ->
         println("- ${issuerSignedItem.elementIdentifier.value}: ${issuerSignedItem.elementValue.value.toString()}")
       }
     }
-    println("SIGNED MDOC (mID):")
+    println("SIGNED MDOC (mobile eID):")
     println(Cbor.encodeToHexString(mdoc))
 
     mdoc.MSO shouldNotBe null
     mdoc.MSO!!.digestAlgorithm.value shouldBe "SHA-256"
-    val signedItems = mdoc.getIssuerSignedItems("org.iso.18013.5.1")
+    val signedItems = mdoc.getIssuerSignedItems("org.iso.23220.1")
     signedItems shouldHaveSize 10
     signedItems.first().digestID.value shouldBe 0
-    mdoc.MSO!!.valueDigests.value shouldContainKey MapKey("org.iso.18013.5.1")
+    mdoc.MSO!!.valueDigests.value shouldContainKey MapKey("org.iso.23220.1")
     OneKey(CBORObject.DecodeFromBytes(mdoc.MSO!!.deviceKeyInfo.deviceKey.toCBOR())).AsPublicKey().encoded shouldBe deviceKeyPair.public.encoded
     mdoc.verify(MDocVerificationParams(VerificationType.forIssuance, ISSUER_KEY_ID), cryptoProvider) shouldBe true
 
@@ -372,7 +364,24 @@ class JVMMdocTest: AnnotationSpec() {
       NullElement()
     )), mdoc.docType.value, EncodedCBORElement(MapElement(mapOf())))
 
-    val mdocRequest = MDocRequestBuilder(mdoc.docType.value).addDataElementRequest("org.iso.18013.5.1", "family_name", true).build()
+
+    // we present the mandatory attributes of the eIDAS minimal data set for natural persons (CIR 2015/1501), although the unique ID is missing in ISO-IEC_23220-2
+    // mandatory:
+    // - current family name(s)
+    // - current first name(s)
+    // - date of birth;
+    // - a unique identifier constructed by the sending Member State in accordance with the technical specifications for the purposes of cross-border identification and which is as persistent as possible in time.
+    // optional:
+    // - first name(s) and family name(s) at birth
+    // - place of birth;
+    // - current address;
+    // - gender
+
+    val mdocRequest = MDocRequestBuilder(mdoc.docType.value)
+      .addDataElementRequest("org.iso.23220.1", "family_name", true)
+      .addDataElementRequest("org.iso.23220.1", "given_name", true)
+      .addDataElementRequest("org.iso.23220.1", "birth_date", true)
+      .build()
 
     val presentedMdoc = mdoc.presentWithDeviceSignature(mdocRequest, deviceAuthentication, cryptoProvider, DEVICE_KEY_ID)
 
@@ -385,5 +394,12 @@ class JVMMdocTest: AnnotationSpec() {
       ),
       cryptoProvider
     ) shouldBe true
+
+    presentedMdoc.nameSpaces.forEach { ns ->
+      println("Presented mobile eID ($ns)")
+      presentedMdoc.getIssuerSignedItems(ns).forEach { issuerSignedItem ->
+        println("- ${issuerSignedItem.elementIdentifier.value}: ${issuerSignedItem.elementValue.value.toString()}")
+      }
+    }
   }
 }
