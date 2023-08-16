@@ -1,10 +1,10 @@
 <div align="center">
- <h1>Kotlin Multiplatform MDoc library</h1>
+ <h1>Kotlin Multiplatform mdoc library</h1>
  <span>by </span><a href="https://walt.id">walt.id</a>
- <p>Create credentials in <b>MDoc format</b>, according the <b>mDL (ISO/IEC 18013-5)</b> standard<p>
+ <p>Create credentials in <b>mdoc format</b> according to <b>ISO/IEC 18013-5:2021</b> standard<p>
 
 
-[![CI/CD workflow for the walt.id MDoc Lib](https://github.com/walt-id/waltid-mdoc/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/walt-id/waltid-mdoc/actions/workflows/release.yml)
+[![CI/CD workflow for the walt.id mdoc Lib](https://github.com/walt-id/waltid-mdoc/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/walt-id/waltid-mdoc/actions/workflows/release.yml)
 
 <a href="https://walt.id/community">
 <img src="https://img.shields.io/badge/Join-The Community-blue.svg?style=flat" alt="Join community!" />
@@ -18,14 +18,14 @@
 
 ## Getting Started
 
-## What is the MDoc library
-This library implements the MDoc specification: [ISO/IEC FDIS 18013-5](https://www.iso.org/standard/69084.html), Personal identification -- ISO-compliant driving licence -- Part 5: Mobile driving licence (mDL) application.
+## What is the mdoc library
+This library implements the mdoc specification: [ISO/IEC 18013-5:2021](https://www.iso.org/standard/69084.html), Personal identification -- ISO-compliant driving licence -- Part 5: Mobile driving licence (mDL) application.
 
 ### Features
 * **Parse and verify** mdocs and mdoc requests, with verification of MSO-validity, doc type, certificate chains, items tamper check, issuer and device signatures.
-* **Create and sign** MDoc documents with issuer-signed items and COSE Sign1 issuer authentication (mobile security object, MSO).
-* **Present** MDoc documents with selective disclosure of issuer-signed items and MDoc device authentication, based on COSE Mac0 or COSE Sign1.
-* **Create** MDoc requests object with COSE Sign1 reader authentication
+* **Create and sign** mdoc documents with issuer-signed items and COSE Sign1 issuer authentication (mobile security object, MSO).
+* **Present** mdoc documents with selective disclosure of issuer-signed items and mdoc device authentication, based on COSE Mac0 or COSE Sign1.
+* **Create** mdoc requests object with COSE Sign1 reader authentication
 * Support for **integration** with various crypto libraries and frameworks, to perform the cryptographic operations and key management
 * **Multiplatform support**
   * Kotlin/Java for JVM
@@ -36,7 +36,7 @@ This library implements the MDoc specification: [ISO/IEC FDIS 18013-5](https://w
 
 **Maven / Gradle repository**:
 
-`https://maven.walt.id/repository/waltid-ssi-kit/`
+`https://maven.walt.id/repository/waltid/`
 
 **Maven**
 
@@ -44,9 +44,9 @@ This library implements the MDoc specification: [ISO/IEC FDIS 18013-5](https://w
 [...]
 <repositories>
   <repository>
-    <id>waltid-ssikit</id>
-    <name>waltid-ssikit</name>
-    <url>https://maven.walt.id/repository/waltid-ssi-kit/</url>
+    <id>waltid</id>
+    <name>walt.id</name>
+    <url>https://maven.walt.id/repository/waltid/</url>
   </repository>
 </repositories>
 [...]
@@ -63,7 +63,7 @@ _Kotlin DSL_
 ```kotlin
 [...]
 repositories {
-  maven("https://maven.walt.id/repository/waltid-ssi-kit/")
+  maven("https://maven.walt.id/repository/waltid/")
 }
 [...]
 val mdocVersion = "1.xxx.0"
@@ -196,7 +196,7 @@ a267646f6354797065756f72672e69736f2e31383031332e352e312e6d444c6c6973737565725369
 ```
 </details>
 
-#### Create, parse and verify an mDL request
+#### Create, parse and verify a mdoc (mDL) request
 
 ```kotlin
 val cryptoProvider = SimpleCOSECryptoProvider(listOf(
@@ -435,7 +435,45 @@ Namespace: org.iso.18013.5.1
 - document_number: 123456789
 ```
 
+### Sign a mobile eID document (ISO-IEC_23220-2) 
+```kotlin
+    val mdoc = MDocBuilder("org.iso.23220.mID.1")
+      .addItemToSign("org.iso.23220.1", "family_name", "Doe".toDE())
+      .addItemToSign("org.iso.23220.1", "given_name", "John".toDE())
+      .addItemToSign("org.iso.23220.1", "birth_date", FullDateElement(LocalDate(1990, 1, 15)))
+      .addItemToSign("org.iso.23220.1", "sex", "1".toDE()) // ISO/IEC 5218
+      .addItemToSign("org.iso.23220.1", "height", "175".toDE())
+      .addItemToSign("org.iso.23220.1", "weight", "70".toDE())
+      .addItemToSign("org.iso.23220.1", "birthplace", "Vienna".toDE())
+      .addItemToSign("org.iso.23220.1", "nationality", "AT".toDE())
+      .addItemToSign("org.iso.23220.1", "telephone_number", "0987654".toDE())
+      .addItemToSign("org.iso.23220.1", "email_address", "john@email.com".toDE())
+      .sign(ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
+        deviceKeyInfo, cryptoProvider, ISSUER_KEY_ID
+      )
 
+```
+
+### Verify certain elements of the above signed mobile eID document (ISO-IEC_23220-2)
+```kotlin
+    val mdocRequest = MDocRequestBuilder(mdoc.docType.value)
+      .addDataElementRequest("org.iso.23220.1", "family_name", true)
+      .addDataElementRequest("org.iso.23220.1", "given_name", true)
+      .addDataElementRequest("org.iso.23220.1", "birth_date", true)
+      .build()
+
+    val presentedMdoc = mdoc.presentWithDeviceSignature(mdocRequest, deviceAuthentication, cryptoProvider, DEVICE_KEY_ID)
+
+    presentedMdoc.verify(
+      MDocVerificationParams(
+        VerificationType.forPresentation,
+        ISSUER_KEY_ID, DEVICE_KEY_ID,
+        deviceAuthentication = deviceAuthentication,
+        mDocRequest =  mdocRequest
+      ),
+      cryptoProvider
+    )
+```
 
 ## License
 
