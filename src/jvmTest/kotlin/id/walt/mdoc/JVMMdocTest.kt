@@ -52,12 +52,16 @@ class JVMMdocTest: AnnotationSpec() {
   val ISSUER_KEY_ID = "ISSUER_KEY"
   val DEVICE_KEY_ID = "DEVICE_KEY"
   val READER_KEY_ID = "READER_KEY"
-  lateinit var caKeyPair: KeyPair
+  lateinit var rootCaKeyPair: KeyPair
+  lateinit var intermCaKeyPair: KeyPair
   lateinit var issuerKeyPair: KeyPair
+  lateinit var intermIssuerKeyPair: KeyPair
   lateinit var deviceKeyPair: KeyPair
   lateinit var readerKeyPair: KeyPair
-  lateinit var caCertificate: X509Certificate
+  lateinit var rootCaCertificate: X509Certificate
+  lateinit var intermCaCertificate: X509Certificate
   lateinit var issuerCertificate: X509Certificate
+  lateinit var intermIssuerCertificate: X509Certificate
 
   @BeforeAll
   fun initializeIssuerKeys() {
@@ -65,49 +69,100 @@ class JVMMdocTest: AnnotationSpec() {
     val kpg = KeyPairGenerator.getInstance("EC")
     kpg.initialize(256)
     // create key pair for test CA
-    caKeyPair = kpg.genKeyPair()
+    rootCaKeyPair = kpg.genKeyPair()
+    intermCaKeyPair = kpg.genKeyPair()
     // create key pair for test signer/issuer
     issuerKeyPair = kpg.genKeyPair()
+    intermIssuerKeyPair = kpg.genKeyPair()
     // create key pair for mdoc auth (device/holder key)
     deviceKeyPair = kpg.genKeyPair()
     readerKeyPair = kpg.genKeyPair()
 
     // create CA certificate
-    caCertificate = X509v3CertificateBuilder(
-      X500Name("CN=MDOC Test CSP"), BigInteger.valueOf(SecureRandom().nextLong()),
-      Date(), Date(System.currentTimeMillis() + 24L * 3600 * 1000), X500Name("CN=MDOC Test CA"),
-      SubjectPublicKeyInfo.getInstance(caKeyPair.public.encoded)
+    rootCaCertificate = X509v3CertificateBuilder(
+      X500Name("CN=MDOC ROOT CSP"), BigInteger.valueOf(SecureRandom().nextLong()),
+      Date(), Date(System.currentTimeMillis() + 24L * 3600 * 1000), X500Name("CN=MDOC ROOT CA"),
+      SubjectPublicKeyInfo.getInstance(rootCaKeyPair.public.encoded)
+    ) .addExtension(Extension.basicConstraints, true, BasicConstraints(false)) // TODO: Should be CA! Should not pass validation when false!
+      .addExtension(Extension.keyUsage, true, KeyUsage(KeyUsage.keyCertSign or KeyUsage.cRLSign)) // Key usage not validated.
+      .build(JcaContentSignerBuilder("SHA256withECDSA").setProvider("BC").build(rootCaKeyPair.private)).let {
+        JcaX509CertificateConverter().setProvider("BC").getCertificate(it)
+      }
+
+    intermCaCertificate = X509v3CertificateBuilder(
+      X500Name("CN=MDOC ROOT CA"), BigInteger.valueOf(SecureRandom().nextLong()),
+      Date(), Date(System.currentTimeMillis() + 24L * 3600 * 1000), X500Name("CN=MDOC Iterm CA"),
+      SubjectPublicKeyInfo.getInstance(intermCaKeyPair.public.encoded)
+    ) .addExtension(Extension.basicConstraints, true, BasicConstraints(true)) // When set to false will not pass validation as expected!
+      .addExtension(Extension.keyUsage, true, KeyUsage(KeyUsage.keyCertSign or KeyUsage.cRLSign))
+
+      .build(JcaContentSignerBuilder("SHA256withECDSA").setProvider("BC").build(rootCaKeyPair.private)).let {
+        JcaX509CertificateConverter().setProvider("BC").getCertificate(it)
+      }
+
+    // create intermediate CA issuer certificate
+    intermIssuerCertificate = X509v3CertificateBuilder(X500Name("CN=MDOC Iterm CA"), BigInteger.valueOf(SecureRandom().nextLong()),
+      Date(), Date(System.currentTimeMillis() + 24L * 3600 * 1000), X500Name("CN=MDOC Iterm Test Issuer"),
+      SubjectPublicKeyInfo.getInstance(intermIssuerKeyPair.public.encoded)
     ) .addExtension(Extension.basicConstraints, true, BasicConstraints(false))
       .addExtension(Extension.keyUsage, true, KeyUsage(KeyUsage.digitalSignature))
-      .build(JcaContentSignerBuilder("SHA256withECDSA").setProvider("BC").build(caKeyPair.private)).let {
+      .build(JcaContentSignerBuilder("SHA256withECDSA").setProvider("BC").build(intermCaKeyPair.private)).let {
         JcaX509CertificateConverter().setProvider("BC").getCertificate(it)
       }
 
     // create issuer certificate
-    issuerCertificate = X509v3CertificateBuilder(X500Name("CN=MDOC Test CA"), BigInteger.valueOf(SecureRandom().nextLong()),
+    issuerCertificate = X509v3CertificateBuilder(X500Name("CN=MDOC ROOT CA"), BigInteger.valueOf(SecureRandom().nextLong()),
       Date(), Date(System.currentTimeMillis() + 24L * 3600 * 1000), X500Name("CN=MDOC Test Issuer"),
       SubjectPublicKeyInfo.getInstance(issuerKeyPair.public.encoded)
     ) .addExtension(Extension.basicConstraints, true, BasicConstraints(false))
       .addExtension(Extension.keyUsage, true, KeyUsage(KeyUsage.digitalSignature))
-      .build(JcaContentSignerBuilder("SHA256withECDSA").setProvider("BC").build(caKeyPair.private)).let {
+      .build(JcaContentSignerBuilder("SHA256withECDSA").setProvider("BC").build(rootCaKeyPair.private)).let {
         JcaX509CertificateConverter().setProvider("BC").getCertificate(it)
       }
   }
 
-  @OptIn(ExperimentalSerializationApi::class)
   @Test
-  fun testSigningMdl() {
+  fun testSigningMdlWithIssuer() {
+    // instantiate simple cose crypto provider for issuer keys and certificates
+    val cryptoProvider = SimpleCOSECryptoProvider(
+      listOf(
+        COSECryptoProviderKeyInfo(ISSUER_KEY_ID, AlgorithmID.ECDSA_256, issuerKeyPair.public, issuerKeyPair.private, listOf(issuerCertificate), listOf(rootCaCertificate)),
+        COSECryptoProviderKeyInfo(DEVICE_KEY_ID, AlgorithmID.ECDSA_256, deviceKeyPair.public, deviceKeyPair.private)
+      )
+    )
+    testSigningMdl(cryptoProvider)
+  }
+
+  @Test
+  fun testSigningMdlWithIntermediateIssuer() {
+    // instantiate simple cose crypto provider for issuer keys and certificates
+    val cryptoProvider = SimpleCOSECryptoProvider(
+      listOf(
+        COSECryptoProviderKeyInfo(ISSUER_KEY_ID, AlgorithmID.ECDSA_256, intermIssuerKeyPair.public, intermIssuerKeyPair.private, listOf(intermIssuerCertificate, intermCaCertificate), listOf(rootCaCertificate)),
+        COSECryptoProviderKeyInfo(DEVICE_KEY_ID, AlgorithmID.ECDSA_256, deviceKeyPair.public, deviceKeyPair.private)
+      )
+    )
+    testSigningMdl(cryptoProvider)
+  }
+
+  @Test
+  fun testSigningMdlWithOnlyTheIntermediateIssuerCertInX5Chain() {
+    // instantiate simple cose crypto provider for issuer keys and certificates
+    val cryptoProvider = SimpleCOSECryptoProvider(
+      listOf(
+        COSECryptoProviderKeyInfo(ISSUER_KEY_ID, AlgorithmID.ECDSA_256, intermIssuerKeyPair.public, intermIssuerKeyPair.private, listOf(intermIssuerCertificate), listOf(rootCaCertificate, intermCaCertificate)),
+        COSECryptoProviderKeyInfo(DEVICE_KEY_ID, AlgorithmID.ECDSA_256, deviceKeyPair.public, deviceKeyPair.private)
+      )
+    )
+    testSigningMdl(cryptoProvider)
+  }
+
+  @OptIn(ExperimentalSerializationApi::class)
+  fun testSigningMdl(cryptoProvider: SimpleCOSECryptoProvider) {
     // ISO-IEC_18013-5:2021
     // Personal identification — ISO-compliant driving licence
     // Part 5: Mobile driving licence (mDL) application
 
-    // instantiate simple cose crypto provider for issuer keys and certificates
-    val cryptoProvider = SimpleCOSECryptoProvider(
-      listOf(
-        COSECryptoProviderKeyInfo(ISSUER_KEY_ID, AlgorithmID.ECDSA_256, issuerKeyPair.public, issuerKeyPair.private, listOf(issuerCertificate), listOf(caCertificate)),
-        COSECryptoProviderKeyInfo(DEVICE_KEY_ID, AlgorithmID.ECDSA_256, deviceKeyPair.public, deviceKeyPair.private)
-      )
-    )
     // create device key info structure of device public key, for holder binding
     val deviceKeyInfo = DeviceKeyInfo(DataElement.fromCBOR(OneKey(deviceKeyPair.public, null).AsCBOR().EncodeToBytes()))
 
@@ -232,7 +287,7 @@ class JVMMdocTest: AnnotationSpec() {
     val readerAuthentication = EncodedCBORElement.fromEncodedCBORElementData(readerAuthenticationBytes).decode<ReaderAuthentication>()
     (readerAuthentication.data[0] as? StringElement)?.value shouldBe "ReaderAuthentication"
 
-    val certificateDER = devRequest.docRequests[0].readerAuth!!.x5Chain!!
+    val certificateDER = devRequest.docRequests[0].readerAuth!!.x5Chain
     val cert = CertificateFactory.getInstance("X509").generateCertificate(ByteArrayInputStream(certificateDER)) as X509Certificate
     val cryptoProvider = SimpleCOSECryptoProvider(listOf(
       COSECryptoProviderKeyInfo(READER_KEY_ID, AlgorithmID.ECDSA_256, cert.publicKey, null, listOf(cert))
@@ -241,10 +296,10 @@ class JVMMdocTest: AnnotationSpec() {
     // test with all fields allowed to retain
     devRequest.docRequests[0].verify(
       MDocRequestVerificationParams(
-      true, READER_KEY_ID, allowedToRetain = mapOf(
+        true, READER_KEY_ID, allowedToRetain = mapOf(
           "org.iso.18013.5.1" to setOf("family_name", "document_number", "driving_privileges", "issue_date", "expiry_date")
-      ), readerAuthentication
-    ), cryptoProvider) shouldBe true
+        ), readerAuthentication
+      ), cryptoProvider) shouldBe true
 
     // test with restricted fields allowed to retain
     devRequest.docRequests[0].verify(
@@ -314,7 +369,7 @@ class JVMMdocTest: AnnotationSpec() {
     // instantiate simple cose crypto provider for issuer keys and certificates
     val cryptoProvider = SimpleCOSECryptoProvider(
       listOf(
-        COSECryptoProviderKeyInfo(ISSUER_KEY_ID, AlgorithmID.ECDSA_256, issuerKeyPair.public, issuerKeyPair.private, listOf(issuerCertificate), listOf(caCertificate)),
+        COSECryptoProviderKeyInfo(ISSUER_KEY_ID, AlgorithmID.ECDSA_256, issuerKeyPair.public, issuerKeyPair.private, listOf(issuerCertificate), listOf(rootCaCertificate)),
         COSECryptoProviderKeyInfo(DEVICE_KEY_ID, AlgorithmID.ECDSA_256, deviceKeyPair.public, deviceKeyPair.private)
       )
     )

@@ -1,8 +1,6 @@
 package id.walt.mdoc.cose
 
-import cbor.Cbor
 import id.walt.mdoc.dataelement.*
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 
 /**
@@ -31,8 +29,15 @@ abstract class COSESimpleBase<T: COSESimpleBase<T>>() {
     get() {
       if (data.size != 4) throw SerializationException("Invalid COSE_Sign1/COSE_Mac0 array")
       val unprotectedHeader = data[1] as? MapElement ?: throw SerializationException("Missing COSE_Sign1 unprotected header")
-      val x5Chain = unprotectedHeader.value[MapKey(X5_CHAIN)] as? ByteStringElement
-      return x5Chain?.value
+      return when (val headerParameter = unprotectedHeader.value[MapKey(X5_CHAIN)]) {
+        is ByteStringElement -> headerParameter.value
+        is ListElement -> {
+          val byteArrays = headerParameter.value.map { (it as? ByteStringElement)?.value ?: ByteArray(0) }
+          byteArrays.reduceOrNull { acc, bytes -> acc + bytes }
+        }
+
+        else -> null
+      }
     }
 
   /**

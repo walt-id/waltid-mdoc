@@ -7,8 +7,6 @@ import id.walt.mdoc.cose.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import java.io.ByteArrayInputStream
 import java.security.KeyStore
-import java.security.PrivateKey
-import java.security.PublicKey
 import java.security.cert.*
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
@@ -29,12 +27,23 @@ class SimpleCOSECryptoProvider(keys: List<COSECryptoProviderKeyInfo>): COSECrypt
     val keyInfo = keyID?.let { keyMap[it] } ?: throw Exception("No key ID given, or key with given ID not found")
     val sign1Msg = Sign1Message()
     sign1Msg.addAttribute(HeaderKeys.Algorithm, keyInfo.algorithmID.AsCBOR(), Attribute.PROTECTED)
-    CBORObject.FromObject(keyInfo.x5Chain.map { it.encoded }.reduceOrNull { acc, bytes -> acc + bytes })?.let {
-      sign1Msg.addAttribute(
-        CBORObject.FromObject(X5_CHAIN),
-        it,
-        Attribute.UNPROTECTED
-      )
+    if (keyInfo.x5Chain.size == 1) {
+      CBORObject.FromObject(keyInfo.x5Chain.map { it.encoded }.reduceOrNull { acc, bytes -> acc + bytes })?.let {
+        sign1Msg.addAttribute(
+          CBORObject.FromObject(X5_CHAIN),
+          it,
+          Attribute.UNPROTECTED
+        )
+      }
+    } else {
+      CBORObject.FromObject(keyInfo.x5Chain.map { CBORObject.FromObject(it.encoded) }.toTypedArray<CBORObject?>())
+        ?.let {
+          sign1Msg.addAttribute(
+            CBORObject.FromObject(X5_CHAIN),
+            it,
+            Attribute.UNPROTECTED
+          )
+        }
     }
     sign1Msg.SetContent(payload)
     sign1Msg.sign(OneKey(keyInfo.publicKey, keyInfo.privateKey))
@@ -58,14 +67,14 @@ class SimpleCOSECryptoProvider(keys: List<COSECryptoProviderKeyInfo>): COSECrypt
       .flatMap { it.acceptedIssuers.toList() }
       .plus(additionalTrustedRootCAs)
       .firstOrNull {
-      cert.issuerX500Principal.name.equals(it.subjectX500Principal.name)
-    }
+        cert.issuerX500Principal.name.equals(it.subjectX500Principal.name)
+      }
   }
 
   private fun validateCertificateChain(certChain: List<X509Certificate>, keyInfo: COSECryptoProviderKeyInfo): Boolean {
     val certPath = CertificateFactory.getInstance("X509").generateCertPath(certChain)
     val cpv = CertPathValidator.getInstance("PKIX")
-    val trustAnchorCert = findRootCA(certChain.first(), keyInfo.trustedRootCAs) ?: return false
+    val trustAnchorCert = findRootCA(certChain.last(), keyInfo.trustedRootCAs) ?: return false
     cpv.validate(certPath, PKIXParameters(setOf(TrustAnchor(trustAnchorCert, null))).apply {
       isRevocationEnabled = false
     })
@@ -77,8 +86,8 @@ class SimpleCOSECryptoProvider(keys: List<COSECryptoProviderKeyInfo>): COSECrypt
     val keyInfo = keyID?.let { keyMap[it] } ?: throw Exception("No key ID given, or key with given ID not found")
     return coseSign1.x5Chain?.let {
       val certChain = CertificateFactory.getInstance("X509").generateCertificates(ByteArrayInputStream(it)).map { it as X509Certificate }
-      return certChain.isNotEmpty() && certChain.last().publicKey.encoded.contentEquals(keyInfo.publicKey.encoded) &&
-          validateCertificateChain(certChain.toList(), keyInfo)
+      return certChain.isNotEmpty() && certChain.first().publicKey.encoded.contentEquals(keyInfo.publicKey.encoded) &&
+              validateCertificateChain(certChain.toList(), keyInfo)
     } ?: false
   }
 
