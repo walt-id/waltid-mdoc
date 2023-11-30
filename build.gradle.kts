@@ -76,10 +76,12 @@ kotlin {
                 implementation("io.kotest:kotest-runner-junit5:5.5.5")
                 implementation("io.kotest:kotest-assertions-core:5.5.5")
                 implementation("io.kotest:kotest-assertions-json:5.5.5")
+                implementation(kotlin("reflect"))
             }
         }
         val jsMain by getting {
             dependencies {
+                implementation(npm("cose-js", "0.9.0"))
             }
         }
         val jsTest by getting {

@@ -4,8 +4,10 @@ import COSE.*
 import cbor.Cbor
 import com.upokecenter.cbor.CBORObject
 import id.walt.mdoc.cose.*
+import korlibs.crypto.encoding.Hex
 import kotlinx.serialization.ExperimentalSerializationApi
 import java.io.ByteArrayInputStream
+import java.io.Console
 import java.security.KeyStore
 import java.security.cert.*
 import javax.net.ssl.TrustManagerFactory
@@ -49,6 +51,7 @@ class SimpleCOSECryptoProvider(keys: List<COSECryptoProviderKeyInfo>): COSECrypt
     sign1Msg.sign(OneKey(keyInfo.publicKey, keyInfo.privateKey))
 
     val cborObj = sign1Msg.EncodeToCBORObject()
+    println("Signed message: " + Hex.encode(cborObj.EncodeToBytes()));
     return Cbor.decodeFromByteArray(COSESign1Serializer, cborObj.EncodeToBytes())
   }
 
