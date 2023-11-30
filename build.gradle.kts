@@ -81,7 +81,7 @@ kotlin {
         }
         val jsMain by getting {
             dependencies {
-                implementation(npm("cose-js", "0.9.0"))
+                //implementation(npm("cose-js", "0.9.0"))
             }
         }
         val jsTest by getting {
