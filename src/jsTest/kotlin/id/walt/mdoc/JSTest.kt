@@ -23,21 +23,21 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToHexString
 import kotlin.test.Test
 
-class JSTest {
+/*class JSTest {
 
   @OptIn(DelicateCoroutinesApi::class, ExperimentalJsExport::class)
   //@Test
-  fun test1() = GlobalScope.promise {
+  /*fun test1() = GlobalScope.promise {
     val key: dynamic = object {}
     key["d"] = Hex.decode("6c1382765aec5358f117733d281c1c7bdc39884d04a45a1e6c67c858bc206c19")
     val cryptoProvider = SimpleAsyncCOSECryptoProvider(listOf(
       COSECryptoProviderKeyInfo("ISSUER_KEY_ID", "ES256", key)
     ))
     testSigningMdl(cryptoProvider)
-  }
+  }*/
 
-  @OptIn(ExperimentalSerializationApi::class)
-  suspend fun testSigningMdl(cryptoProvider: SimpleAsyncCOSECryptoProvider) {
+  //@OptIn(ExperimentalSerializationApi::class)
+  /*suspend fun testSigningMdl(cryptoProvider: SimpleAsyncCOSECryptoProvider) {
     // ISO-IEC_18013-5:2021
     // Personal identification — ISO-compliant driving licence
     // Part 5: Mobile driving licence (mDL) application
@@ -56,5 +56,5 @@ class JSTest {
       )
     println("SIGNED MDOC (mDL):")
     println(Cbor.encodeToHexString(mdoc))
-  }
-}
+  }*/
+}*/
