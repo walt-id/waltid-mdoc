@@ -29,23 +29,39 @@ import kotlinx.datetime.plus
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromHexString
 import kotlinx.serialization.encodeToHexString
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
+import org.bouncycastle.asn1.sec.ECPrivateKey
+import org.bouncycastle.asn1.sec.SECNamedCurves
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x509.BasicConstraints
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.asn1.x509.KeyUsage
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.asn1.x9.X9ECParameters
 import org.bouncycastle.cert.X509v3CertificateBuilder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.crypto.params.ECDomainParameters
+import org.bouncycastle.crypto.params.ECPrivateKeyParameters
+import org.bouncycastle.crypto.params.ECPublicKeyParameters
+import org.bouncycastle.jcajce.provider.asymmetric.ec.IESCipher.ECIESwithSHA256
+import org.bouncycastle.jcajce.provider.asymmetric.ec.KeyFactorySpi.ECDSA
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.jce.spec.ECKeySpec
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import java.io.ByteArrayInputStream
 import java.math.BigInteger
+import java.security.KeyFactory
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
 import java.security.Security
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
+import java.security.spec.ECParameterSpec
+import java.security.spec.ECPrivateKeySpec
+import java.security.spec.EllipticCurve
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.X509EncodedKeySpec
 import java.util.*
 
 class JVMMdocTest: AnnotationSpec() {
@@ -465,4 +481,33 @@ class JVMMdocTest: AnnotationSpec() {
     val coseSign1 = Cbor.decodeFromByteArray(COSESign1Serializer, Hex.decode(jsCoseResult))
     coseSign1.algorithm shouldBe AlgorithmID.ECDSA_256
   }
+
+  /*@Test
+  fun testReproduceJSTestResult() {
+    val key = Hex.decode("6c1382765aec5358f117733d281c1c7bdc39884d04a45a1e6c67c858bc206c19")
+    val curve = SECNamedCurves.getByName("secp256k1") as X9ECParameters
+    val domain = ECDomainParameters(curve.curve, curve.g, curve.n, curve.h)
+    val d = BigInteger(key)
+    val q = domain.g.multiply(d)
+    val pubParams = ECPublicKeyParameters(q, domain)
+    val pub = pubParams.q.getEncoded(false)
+    val priv = ECPrivateKey(d)
+    val kf = KeyFactory.getInstance("EC")
+    val cryptoProvider = SimpleCOSECryptoProvider(listOf(
+      COSECryptoProviderKeyInfo("ISSUER_KEY_ID", AlgorithmID.ECDSA_256,
+        pub,
+        )
+    ))
+    val deviceKeyInfo = DeviceKeyInfo(MapElement(mapOf(MapKey("k") to StringElement("1234"))))
+    val mdoc = MDocBuilder("org.iso.18013.5.1.mDL")
+      .addItemToSign("org.iso.18013.5.1", "family_name", "Doe".toDE())
+      .addItemToSign("org.iso.18013.5.1", "given_name", "John".toDE())
+      .addItemToSign("org.iso.18013.5.1", "birth_date", FullDateElement(LocalDate(1990, 1, 15)))
+      .sign(
+        ValidityInfo(Clock.System.now(), Clock.System.now(), Clock.System.now().plus(365*24, DateTimeUnit.HOUR)),
+        deviceKeyInfo, cryptoProvider, "ISSUER_KEY_ID"
+      )
+    println("SIGNED MDOC (mDL):")
+    println(Cbor.encodeToHexString(mdoc))
+  }*/
 }
