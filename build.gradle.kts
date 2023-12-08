@@ -21,13 +21,13 @@ kotlin {
         }
     }
     js(IR) {
-        browser {
+        /*browser {
             commonWebpackConfig {
                 cssSupport {
                     enabled.set(true)
                 }
             }
-        }
+        }*/
         nodejs {
             generateTypeScriptDefinitions()
         }
@@ -85,7 +85,6 @@ kotlin {
             }
         }
         val jsTest by getting {
-
         }
         val nativeMain by getting
         val nativeTest by getting
