@@ -23,28 +23,28 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToHexString
 import kotlin.test.Test
 
-/*class JSTest {
+class JSTest {
 
   @OptIn(DelicateCoroutinesApi::class, ExperimentalJsExport::class)
   //@Test
-  /*fun test1() = GlobalScope.promise {
+  fun test1() = GlobalScope.promise {
     val key: dynamic = object {}
     key["d"] = Hex.decode("6c1382765aec5358f117733d281c1c7bdc39884d04a45a1e6c67c858bc206c19")
     val cryptoProvider = SimpleAsyncCOSECryptoProvider(listOf(
       COSECryptoProviderKeyInfo("ISSUER_KEY_ID", "ES256", key)
     ))
     testSigningMdl(cryptoProvider)
-  }*/
+  }
 
-  //@OptIn(ExperimentalSerializationApi::class)
-  /*suspend fun testSigningMdl(cryptoProvider: SimpleAsyncCOSECryptoProvider) {
+  @OptIn(ExperimentalSerializationApi::class)
+  suspend fun testSigningMdl(cryptoProvider: SimpleAsyncCOSECryptoProvider) {
     // ISO-IEC_18013-5:2021
     // Personal identification — ISO-compliant driving licence
     // Part 5: Mobile driving licence (mDL) application
-
+    println("test signing mdl")
     // create device key info structure of device public key, for holder binding
     val deviceKeyInfo = DeviceKeyInfo(MapElement(mapOf(MapKey("k") to StringElement("1234"))))
-
+    println("device key info: ${deviceKeyInfo}")
     // build mdoc of type mDL and sign using issuer key with holder binding to device key
     val mdoc = MDocBuilder("org.iso.18013.5.1.mDL")
       .addItemToSign("org.iso.18013.5.1", "family_name", "Doe".toDE())
@@ -56,5 +56,5 @@ import kotlin.test.Test
       )
     println("SIGNED MDOC (mDL):")
     println(Cbor.encodeToHexString(mdoc))
-  }*/
-}*/
+  }
+}

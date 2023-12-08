@@ -34,7 +34,7 @@ internal object DataElementSerializer: KSerializer<AnyDataElement> {
           TDATE, TIME -> deserializeDateTime(decoder, tag)
           FULL_DATE_STR, FULL_DATE_INT -> deserializeFullDate(decoder, tag)
           COSE_SIGN1 -> ListElement(decoder.decodeSerializableValue(ListSerializer(DataElementSerializer)))
-          else -> throw SerializationException("The given tagged value type is currently not supported")
+          else -> throw SerializationException("The given tagged value type $tag is currently not supported")
         }
       }
       7 -> when(curHead) {
