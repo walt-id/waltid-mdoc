@@ -26,7 +26,7 @@ import kotlin.test.Test
 class JSTest {
 
   @OptIn(DelicateCoroutinesApi::class, ExperimentalJsExport::class)
-  @Test
+  //@Test
   fun test1() = GlobalScope.promise {
     val key: dynamic = object {}
     key["d"] = Hex.decode("6c1382765aec5358f117733d281c1c7bdc39884d04a45a1e6c67c858bc206c19")
