@@ -1,7 +1,6 @@
 # [moved]
-<i>We're currently redesigning our products to make them more efficient and easy to work with. Future versions of this library will be realised via a new repo, which we will publish soon. You can rest assured that the structure and features supported in this repo will be exactly the same in the new one. 
 
-You can find more info about the redesign and the introduction of the community stack [here](https://walt.id/blog/p/community-stack). In the meantime, if you have any questions or concerns, please [reach out to us](https://walt.id/discord).</i>
+The new repo can be found [here](https://github.com/walt-id/waltid-identity/tree/main/waltid-mdoc-credentials).
 
 <div align="center">
  <h1>Kotlin Multiplatform mdoc library</h1>
